@@ -24,41 +24,35 @@
       <div id="date" class="center-date" aria-live="polite"></div>
       <div id="time" class="center-time" aria-live="polite"></div>
       <div id="quote" class="center-quote" aria-live="polite"></div>
-
-      <!-- Settings / controls (positioned above bottom bar via CSS) -->
-      <div id="center-controls" class="center-controls hidden" aria-hidden="true">
-        <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
-        <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
-
-        <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
-        <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
-
-        <!-- Gallery / Manage removed per request -->
-
-        <!-- Native color picker to avoid manual hex input -->
-        <input id="color-input" type="color" class="color-input" title="Pick a color">
-        <button id="color-apply" class="mini-btn">Apply Color</button>
-
-        <button id="settings-done" class="mini-btn">Done</button>
-      </div>
     </main>
 
-    <!-- Sticky notes area -->
-    <div id="notes-container">
-      <div id="notes-list"></div>
-      <div style="margin-top:8px; text-align:right;">
-        <button id="add-note-btn" class="mini-btn">+ Add Note</button>
-      </div>
+    <!-- Settings / controls (moved near settings button) -->
+    <div id="center-controls" class="center-controls hidden" aria-hidden="true">
+      <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
+      <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
+
+      <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
+      <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
+
+      <!-- Text styling modal opener -->
+      <button id="open-text-style" class="mini-btn">Text Style</button>
+
+      <!-- Color picker for icons/shortcuts (independent from center text) -->
+      <input id="color-input" type="color" class="color-input" title="Pick icon/link color">
+      <button id="color-apply" class="mini-btn">Apply Color</button>
+
+      <button id="settings-done" class="mini-btn">Done</button>
     </div>
 
-    <!-- Bottom bar wrapper -->
-    <div id="bottom-bar-wrap" class="bar-wrap">
-      <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
-      <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
-      <button id="bottom-add-btn" class="mini-btn hidden-until-settings" title="Add bottom link">+ Add</button>
+    <!-- Notes area (moved to left side) -->
+    <div id="notes-container" aria-live="polite">
+      <div id="notes-list"></div>
     </div>
 
   </div>
+
+  <!-- Floating add-note button above settings button -->
+  <button id="add-note-fab" class="mini-btn fab" title="Add Note">+ Note</button>
 
   <!-- Quotes modal -->
   <div id="modal" class="modal" aria-hidden="true">
@@ -75,12 +69,30 @@
   <!-- Settings button (lower-left) -->
   <button id="settings-button" aria-label="Settings">⚙</button>
 
-  <!-- Font picker modal -->
+  <!-- Font / Text styling modal -->
   <div id="font-picker-modal" class="modal" aria-hidden="true">
     <div class="modal-content" id="font-picker-content">
-      <h3>Choose font</h3>
+      <h3>Text Styling</h3>
+
       <div id="font-list"></div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;flex-direction:column">
+        <div>
+          <label>Time color: <input id="time-color-input" type="color"></label>
+          <label style="margin-left:12px"><input id="time-bold" type="checkbox"> Bold</label>
+        </div>
+        <div>
+          <label>Date color: <input id="date-color-input" type="color"></label>
+          <label style="margin-left:12px"><input id="date-bold" type="checkbox"> Bold</label>
+        </div>
+        <div>
+          <label>Quote color: <input id="quote-color-input" type="color"></label>
+          <label style="margin-left:12px"><input id="quote-bold" type="checkbox"> Bold</label>
+        </div>
+      </div>
+
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button id="font-apply" class="mini-btn">Apply</button>
         <button id="font-picker-cancel" class="mini-btn">Cancel</button>
       </div>
     </div>

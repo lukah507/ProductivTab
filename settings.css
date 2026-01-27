@@ -104,7 +104,7 @@
   border-color: #336699;
 }
 
-/* Rectangle color button */
+/* Rectangle color button (unused) */
 .rect-color-btn {
   position: absolute;
   bottom: 2px;
@@ -119,15 +119,6 @@
   transition: opacity 0.2s ease;
   pointer-events: auto;
   z-index: 10;
-}
-
-.link-item:hover .rect-color-btn {
-  opacity: 1;
-}
-
-.rect-color-btn:hover {
-  opacity: 1 !important;
-  background: rgba(255, 255, 255, 0.4);
 }
 
 /* Hidden class for center controls */

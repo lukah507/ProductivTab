@@ -1,107 +1,40 @@
 :root{
-  --bar-height:64px;
-  --bar-padding:10px;
-  --bar-radius:8px;
-  --overlay-opacity:0.92;
-  --icon-size:40px;
-  --text-color: #ffffff;
-  --bar-bg-color: rgba(0,0,0,0.3);
+  --icon-size:36px;
+  --text-color:#ffffff;
+  --accent-color:#336699;
 }
 
-*{box-sizing:border-box}
-html,body,#root{height:100%;width:100%;margin:0;padding:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
-body{background-size:cover;background-position:center;background-repeat:no-repeat;overflow:hidden;color:var(--text-color)}
+/* Global */
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:var(--text-color);background:#111}
 
-/* BAR WRAP (slightly larger clickable transparent area) */
-.bar-wrap{
-  position:fixed;
-  left:0;right:0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:6px 12px;
-  pointer-events:none;
-  z-index:6;
-}
-#top-bar-wrap{top:6px}
-#bottom-bar-wrap{bottom:6px;justify-content:center}
+/* Bars */
+.bar-wrap{position:fixed;left:0;right:0;pointer-events:none}
+#top-bar-wrap{top:12px;height:48px;display:flex;align-items:center;padding:8px 12px;gap:8px}
+#bottom-bar-wrap{bottom:12px;height:48px;display:flex;align-items:center;padding:8px 12px;gap:8px}
 
-/* the slightly-larger invisible area */
-.bar-overlay{
-  pointer-events:auto;
-  position:absolute;
-  left:6px; right:6px;
-  height:var(--bar-height);
-  border-radius:calc(var(--bar-radius) + 2px);
-  background: var(--bar-bg-color);
-  transition: background .25s ease;
-  z-index:1;
-}
+/* overlays */
+.bar-overlay{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:1}
 
-/* visible bar containing links */
-.link-bar{
-  position:relative;
-  pointer-events:auto;
-  display:flex;
-  gap:10px;
-  height:var(--bar-height);
-  align-items:center;
-  padding:var(--bar-padding);
-  margin:0 18px;
-  border-radius:var(--bar-radius);
-  z-index:2;
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(6px);
-  min-height:var(--bar-height);
-}
+/* visible bars */
+.link-bar{display:flex;gap:8px;align-items:center;z-index:2;pointer-events:auto}
 
-/* link item */
+/* link item - remove background rectangles entirely */
 .link-item{
-  position: relative;
-  display:flex;
+  display:inline-flex;
+  gap:8px;
   align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:6px;
-  width:70px;
-  text-decoration:none;
+  padding:4px 6px;
   color:var(--text-color);
   font-size:12px;
   border-radius:6px;
-  padding:4px;
+  text-decoration:none;
+  position:relative;
+  background: transparent; /* removed opaque rectangle */
+  box-shadow: none;
 }
-.link-item:hover{background:rgba(255,255,255,0.06)}
+.link-item:hover{ background: transparent; } /* keep hover subtle / none */
 
-/* Remove shortcut button - hidden by default, shown when settings open */
-.remove-shortcut {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255, 0, 0, 0.85);
-  color: #fff;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  line-height: 1;
-  padding: 0;
-}
-body.settings-open .remove-shortcut {
-  display: flex;
-}
-.remove-shortcut:hover {
-  background: rgba(255, 0, 0, 1);
-  transform: scale(1.1);
-}
-
-/* icon circle */
+/* icon - transparent background; favicons remain as images */
 .icon{
   position: relative;
   width:var(--icon-size);
@@ -110,68 +43,79 @@ body.settings-open .remove-shortcut {
   display:flex;
   align-items:center;
   justify-content:center;
-  background:transparent;
+  background: transparent;
   overflow:hidden;
+  font-weight:700;
+  font-size:14px;
+  color:inherit;
 }
 .icon img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* Add buttons - hidden by default, shown when settings open */
-#top-add-btn, #bottom-add-btn {
-  pointer-events: auto;
-  z-index: 10;
-  position: relative;
-  display: none;
-}
-body.settings-open #top-add-btn,
-body.settings-open #bottom-add-btn {
-  display: block;
-}
+/* label */
+.label{ font-size:12px; line-height:1; }
+
+/* Add buttons hidden until settings open */
+#top-add-btn,#bottom-add-btn{pointer-events:auto;z-index:20;position:relative;display:none}
+body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:inline-block }
 
 /* center stack */
-#center-stack{
-  position:fixed;
-  left:50%;top:50%;
-  transform:translate(-50%,-50%);
-  text-align:center;
-  z-index:3;
-  pointer-events:none;
-}
+#center-stack{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:10;pointer-events:none}
 .center-date{font-size:18px;opacity:0.95;pointer-events:auto}
 .center-time{font-size:54px;font-weight:600;margin-top:8px;pointer-events:auto}
 .center-quote{font-size:16px;margin-top:8px;opacity:0.95;pointer-events:auto}
 
-/* center controls - positioned fixed bottom-center above bottom bar */
+/* center-controls (positioned lower-left, closer to settings button) */
 .center-controls{
   position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
+  bottom: 96px;      /* moved closer to bottom; adjust if needed */
+  transform: none;
   display:flex;
   gap:8px;
-  justify-content:center;
+  justify-content:flex-start;
   pointer-events:auto;
-  z-index: 7;
+  z-index:80;
 }
+
+/* Buttons / inputs */
 .mini-btn{
   pointer-events:auto;
   padding:6px 8px;border-radius:8px;border:none;background:rgba(0,0,0,0.45);
-  color:#fff;cursor:pointer;font-size:13px
+  color:#fff;cursor:pointer;font-size:13px;
 }
 .file-label{display:inline-block}
+.color-input{width:36px;height:36px;padding:4px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:transparent;vertical-align:middle}
 
-/* color picker input */
-.color-input{
-  width: 50px;
-  height: 30px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+/* Notes - left side; notes are fixed-position and draggable */
+#notes-container{position:fixed;left:12px;top:110px;width:300px;z-index:70;pointer-events:none}
+#notes-list{position:relative;width:300px}
+.note{
+  position:fixed;
+  width:260px;
+  padding:8px;
+  border-radius:8px;
+  margin-bottom:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.16);
+  color:#000;
+  background:#fff;
+  cursor:default;
+  pointer-events:auto;
 }
-
-/* notes */
-#notes-container{position:fixed;right:12px;top:110px;width:260px;z-index:4;pointer-events:auto}
-.note{padding:8px;border-radius:8px;margin-bottom:10px;box-shadow:0 6px 18px rgba(0,0,0,0.16);color:#000}
 .note textarea{width:100%;height:100px;border:0;background:transparent;resize:none;outline:none;font-size:14px;color:#000}
+
+/* drag handle */
+.note-handle{
+  height:18px;
+  width:100%;
+  cursor:grab;
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color:#333;
+}
+.note-handle:active{ cursor:grabbing; }
 
 /* note colors */
 .note.color-yellow{background:#fffb7a}
@@ -179,14 +123,55 @@ body.settings-open #bottom-add-btn {
 .note.color-blue{background:#bfe9ff}
 
 /* modal */
-.modal{position:fixed;left:0;right:0;top:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:10}
+.modal{position:fixed;left:0;right:0;top:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:90}
 .modal[aria-hidden="false"]{display:flex}
 .modal-content{background:#fff;padding:14px;border-radius:8px;width:560px;max-width:96%}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 
+/* Remove-shortcut button (visible only in settings mode) */
+.remove-shortcut{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:none;
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  font-weight:700;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:6;
+  font-size:13px;
+  line-height:1;
+}
+body.settings-open .link-item{ position: relative; }
+body.settings-open .remove-shortcut{ display:flex; }
+
+/* floating add-note button (above settings button) */
+.fab{
+  position: fixed;
+  bottom: 60px;  /* directly above settings button (which sits at bottom:20px) */
+  left: 20px;
+  z-index: 95;
+  width:44px;
+  height:36px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+}
+
+/* settings button */
+#settings-button{ position: fixed; bottom:20px; left:20px; width:48px; height:48px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:24px; cursor:pointer; z-index:100; display:flex; align-items:center; justify-content:center }
+
 /* small responsive adjustments */
 @media (max-width:720px){
-  .link-item{width:56px}
-  .center-time{font-size:44px}
-  :root{--icon-size:36px}
+  .center-time{font-size:40px}
+  .center-controls{bottom:120px;left:8px}
+  #notes-container{display:none}
 }

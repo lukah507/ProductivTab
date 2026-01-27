@@ -1,46 +1,61 @@
-// main.js - Manifest V3 compatible new-tab logic using chrome.storage
-// Features implemented:
-// - top/bottom bars (add/remove links, favicon), right-click removal
-// - background upload and gallery (stored in chrome.storage.local as data URLs)
-// - on-load random background selection, and overlay color selection via pixel sampling
-// - custom icon/text color override (sync setting), used for icons/text and overlay derivation
-// - center date/time (12/24 toggle), quotes (editable list saved to storage)
-// - sticky notes (add/edit/delete, three colors) saved to chrome.storage.local
-//
-// Storage strategy:
-// - chrome.storage.sync: small settings and arrays (topLinks, bottomLinks, colorOverride, clock24)
-// - chrome.storage.local: larger assets (bgList, notes, bgCurrent)
-// Note: chrome.storage is async; helper wrappers below.
-
+// main.js — consolidated text styling, movable notes, and UI wiring
 (function(){
   'use strict';
 
   /* ---------- Storage helpers ---------- */
-
   function storageSyncGet(keys) {
-    return new Promise(resolve => chrome.storage.sync.get(keys, resolve));
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+        chrome.storage.sync.get(keys, resolve);
+      } else {
+        const result = {};
+        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k] = null; }});
+        resolve(result);
+      }
+    });
   }
   function storageSyncSet(obj) {
-    return new Promise(resolve => chrome.storage.sync.set(obj, resolve));
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+        chrome.storage.sync.set(obj, resolve);
+      } else {
+        Object.entries(obj).forEach(([k,v]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} });
+        resolve();
+      }
+    });
   }
   function storageLocalGet(keys) {
-    return new Promise(resolve => chrome.storage.local.get(keys, resolve));
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(keys, resolve);
+      } else {
+        const result = {};
+        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k] = null; }});
+        resolve(result);
+      }
+    });
   }
   function storageLocalSet(obj) {
-    return new Promise(resolve => chrome.storage.local.set(obj, resolve));
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set(obj, resolve);
+      } else {
+        Object.entries(obj).forEach(([k,v]) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} });
+        resolve();
+      }
+    });
   }
 
-  /* ---------- Element refs ---------- */
+  /* ---------- DOM refs ---------- */
   const topBar = document.getElementById('top-bar');
   const bottomBar = document.getElementById('bottom-bar');
-  const topOverlay = document.getElementById('top-bar-overlay');
-  const bottomOverlay = document.getElementById('bottom-bar-overlay');
   const topAddBtn = document.getElementById('top-add-btn');
   const bottomAddBtn = document.getElementById('bottom-add-btn');
 
   const dateEl = document.getElementById('date');
   const timeEl = document.getElementById('time');
   const quoteEl = document.getElementById('quote');
+
   const clockToggle = document.getElementById('clock-toggle');
   const editQuotesBtn = document.getElementById('edit-quotes');
   const modal = document.getElementById('modal');
@@ -49,17 +64,29 @@
   const closeModalBtn = document.getElementById('close-modal');
 
   const bgUpload = document.getElementById('bg-upload');
-  // Gallery buttons removed per user request
-  const bgAddToSlideshowBtn = null; // disabled
-  const bgManageBtn = null; // disabled
-
   const colorInput = document.getElementById('color-input');
   const colorApplyBtn = document.getElementById('color-apply');
 
-  const notesList = document.getElementById('notes-list');
-  const addNoteBtn = document.getElementById('add-note-btn');
+  const settingsBtn = document.getElementById('settings-button');
+  const centerControls = document.getElementById('center-controls');
+  const settingsDone = document.getElementById('settings-done');
+  const openTextStyleBtn = document.getElementById('open-text-style');
 
-  /* ---------- Defaults ---------- */
+  const fontPickerModal = document.getElementById('font-picker-modal');
+  const fontList = document.getElementById('font-list');
+  const fontApplyBtn = document.getElementById('font-apply');
+  const fontCancelBtn = document.getElementById('font-picker-cancel');
+  const timeColorInput = document.getElementById('time-color-input');
+  const dateColorInput = document.getElementById('date-color-input');
+  const quoteColorInput = document.getElementById('quote-color-input');
+  const timeBold = document.getElementById('time-bold');
+  const dateBold = document.getElementById('date-bold');
+  const quoteBold = document.getElementById('quote-bold');
+
+  const notesList = document.getElementById('notes-list');
+  const addNoteFab = document.getElementById('add-note-fab');
+
+  /* ---------- Defaults & state ---------- */
   const DEFAULTS = {
     topLinks: [
       { title: 'Google', url: 'https://www.google.com' },
@@ -75,499 +102,415 @@
       "The only way to do great work is to love what you do. — Steve Jobs"
     ],
     clock24: false,
-    colorOverride: '' // e.g., "#336699"
+    colorOverride: '',
+    textStyles: {
+      time: { color: '', bold: false },
+      date: { color: '', bold: false },
+      quote: { color: '', bold: false }
+    }
   };
 
-  /* ---------- Utility helpers ---------- */
-  function $(id){return document.getElementById(id);}
-  function qsa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
-  function uid(){ return Math.random().toString(36).slice(2,9); }
-
-  function faviconForUrl(url){
-    try {
-      const u = new URL(url);
-      return 'https://s2.googleusercontent.com/s2/favicons?domain=' + u.hostname;
-    } catch(e){ return ''; }
-  }
-
-  /* ---------- State (loaded from storage) ---------- */
   let state = {
     topLinks: DEFAULTS.topLinks.slice(),
     bottomLinks: DEFAULTS.bottomLinks.slice(),
     quotes: DEFAULTS.quotes.slice(),
     clock24: DEFAULTS.clock24,
     colorOverride: DEFAULTS.colorOverride,
-    // from local:
-    bgList: [], // array of dataURLs
+    textStyles: JSON.parse(JSON.stringify(DEFAULTS.textStyles)),
     bgCurrent: '',
-    notes: [] // {id, color, text}
+    notes: []
   };
 
-  /* ---------- Render functions ---------- */
+  let currentTextTarget = null; // 'time' | 'date' | 'quote' or null
 
+  /* ---------- Helpers ---------- */
+  function qsa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+  function uid(){ return Math.random().toString(36).slice(2,9); }
+  function faviconForUrl(url){
+    try { const u = new URL(url); return 'https://s2.googleusercontent.com/s2/favicons?domain=' + u.hostname; }
+    catch(e) { return ''; }
+  }
+
+  /* ---------- Render links / bars ---------- */
   function renderLinkItem(link) {
     const a = document.createElement('a');
     a.className = 'link-item';
     a.href = link.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    // apply color override to link text only
-    if (state.colorOverride) a.style.color = state.colorOverride;
+    a.style.color = state.colorOverride || '';
 
     const icon = document.createElement('span');
     icon.className = 'icon';
     const fav = faviconForUrl(link.url);
     if (fav) {
-      const img = document.createElement('img');
-      img.src = fav;
-      img.alt = '';
+      const img = document.createElement('img'); img.src = fav; img.alt = '';
       icon.appendChild(img);
     } else {
-      // Letter icon - use text color for the letter
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
       if (state.colorOverride) icon.style.color = state.colorOverride;
     }
 
-    const label = document.createElement('div');
-    label.className = 'label';
-    label.textContent = link.title || link.url;
-    label.style.fontSize = '12px';
+    const label = document.createElement('div'); label.className = 'label'; label.textContent = link.title || link.url; label.style.fontSize='12px';
 
-    // Add remove button (visible only when settings are open via CSS)
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-shortcut';
-    removeBtn.textContent = '×';
+    removeBtn.type = 'button';
     removeBtn.title = 'Remove shortcut';
+    removeBtn.textContent = '×';
     removeBtn.addEventListener('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (confirm('Remove "' + (link.title||link.url) + '"?')) {
-        removeLink(link);
-      }
+      ev.preventDefault(); ev.stopPropagation();
+      if (confirm('Remove "' + (link.title||link.url) + '"?')) removeLink(link);
     });
 
-    a.appendChild(removeBtn);
-    a.appendChild(icon);
-    a.appendChild(label);
+    a.appendChild(icon); a.appendChild(label); a.appendChild(removeBtn);
 
-    // right-click remove (legacy option)
     a.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
-      if (confirm('Remove "' + (link.title||link.url) + '"?')) {
-        removeLink(link);
-      }
+      if (confirm('Remove "' + (link.title||link.url) + '"?')) removeLink(link);
     });
 
     return a;
   }
 
   function renderBars() {
-    topBar.innerHTML = '';
-    bottomBar.innerHTML = '';
-    state.topLinks.forEach(l => topBar.appendChild(renderLinkItem(l)));
-    state.bottomLinks.forEach(l => bottomBar.appendChild(renderLinkItem(l)));
+    if (topBar) topBar.innerHTML = '';
+    if (bottomBar) bottomBar.innerHTML = '';
+
+    (state.topLinks || []).forEach(l => topBar && topBar.appendChild(renderLinkItem(l)));
+    (state.bottomLinks || []).forEach(l => bottomBar && bottomBar.appendChild(renderLinkItem(l)));
+
     applyColorToBars();
   }
 
   function applyColorToBars(){
     qsa('.link-item').forEach(a => {
-      // Apply color only to link text
       a.style.color = state.colorOverride || '';
       const icon = a.querySelector('.icon');
-      if (icon && state.colorOverride) {
-        // For letter icons (no img), apply color to text only, NOT background
-        const hasImg = icon.querySelector('img');
-        if (!hasImg) {
-          icon.style.color = state.colorOverride;
-          icon.style.background = 'transparent';
-        }
-      } else if (icon) {
+      if (icon) {
+        const img = icon.querySelector('img');
+        if (!img) icon.style.color = state.colorOverride || '';
+        else icon.style.color = '';
         icon.style.background = '';
-        icon.style.color = '';
       }
     });
+    if (settingsBtn) {
+      if (state.colorOverride) { settingsBtn.style.setProperty('--accent-color', state.colorOverride); settingsBtn.classList.add('active'); }
+      else { settingsBtn.classList.remove('active'); settingsBtn.style.removeProperty('--accent-color'); }
+    }
   }
 
   /* ---------- Link CRUD ---------- */
-  async function saveLinksToSync() {
-    await storageSyncSet({ topLinks: state.topLinks, bottomLinks: state.bottomLinks });
+  async function saveLinks() { await storageSyncSet({ topLinks: state.topLinks, bottomLinks: state.bottomLinks }); }
+  function addLink(list, link) {
+    if (list === 'top') state.topLinks.push(link); else state.bottomLinks.push(link);
+    saveLinks(); renderBars();
   }
-  function addLink(listName, link) {
-    if (listName === 'top') state.topLinks.push(link);
-    else state.bottomLinks.push(link);
-    saveLinksToSync().then(renderBars);
+  async function removeLink(link) {
+    state.topLinks = state.topLinks.filter(l => l.url !== link.url || l.title !== link.title);
+    state.bottomLinks = state.bottomLinks.filter(l => l.url !== link.url || l.title !== link.title);
+    await saveLinks();
+    renderBars();
   }
-  function removeLink(link) {
-    state.topLinks = state.topLinks.filter(l => l.url !== link.url);
-    state.bottomLinks = state.bottomLinks.filter(l => l.url !== link.url);
-    saveLinksToSync().then(renderBars);
-  }
-
-  /* ---------- Background handling ---------- */
-
-  async function loadBackgroundsFromLocal() {
-    const res = await storageLocalGet(['bgList','bgCurrent']);
-    state.bgList = res.bgList || [];
-    state.bgCurrent = res.bgCurrent || '';
+  function addLinkPrompt(list) {
+    const url = prompt('Enter URL (https://...)'); if (!url) return;
+    const title = prompt('Title (optional)', url.replace(/^https?:\/\//,'').replace(/\/.*$/,''));
+    addLink(list, { title: title || url, url });
   }
 
-  async function saveBackgroundsToLocal() {
-    await storageLocalSet({ bgList: state.bgList, bgCurrent: state.bgCurrent });
-  }
-
-  function setBodyBackground(dataUrl) {
-    if (dataUrl) {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
-      state.bgCurrent = dataUrl;
-      saveBackgroundsToLocal();
-      // update overlays after background is painted
-      setTimeout(updateBarOverlaysBasedOnBackground, 300);
-    } else {
-      document.body.style.backgroundImage = '';
-    }
-  }
-
-  function processFileAsDataUrl(file) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = e => resolve(e.target.result);
-      fr.onerror = (e) => reject(e);
-      fr.readAsDataURL(file);
-    });
-  }
-
-  bgUpload.addEventListener('change', async (ev) => {
-    const files = Array.from(ev.target.files || []);
-    if (!files.length) return;
+  /* ---------- Background upload ---------- */
+  bgUpload && bgUpload.addEventListener('change', async (ev) => {
+    const files = Array.from(ev.target.files || []); if (!files.length) return;
     for (const f of files) {
-      try {
-        const dataUrl = await processFileAsDataUrl(f);
-        // add to gallery
-        state.bgList.push(dataUrl);
-      } catch (e) {
-        console.error('file read error', e);
-      }
+      const r = new FileReader();
+      r.onload = async (e) => {
+        state.bgCurrent = e.target.result;
+        await storageLocalSet({ bgCurrent: state.bgCurrent });
+        document.body.style.backgroundImage = `url(${state.bgCurrent})`;
+      };
+      r.readAsDataURL(f);
     }
-    // save gallery and set one as current (last uploaded)
-    await saveBackgroundsToLocal();
-    if (state.bgList.length) {
-      setBodyBackground(state.bgList[state.bgList.length - 1]);
-    }
-    ev.target.value = '';
-    alert('Uploaded ' + files.length + ' image(s).');
   });
 
-  // Gallery add/manage buttons removed per user request
-  // bgAddToSlideshowBtn and bgManageBtn handlers disabled
-
-  function pickRandomBackgroundOnLoad() {
-    if (state.bgList && state.bgList.length) {
-      const pick = state.bgList[Math.floor(Math.random()*state.bgList.length)];
-      setBodyBackground(pick);
-    } else if (state.bgCurrent) {
-      setBodyBackground(state.bgCurrent);
+  /* ---------- Time / Date / Quote text styling ---------- */
+  function applyTextStyles() {
+    if (timeEl && state.textStyles.time) {
+      timeEl.style.color = state.textStyles.time.color || '';
+      timeEl.style.fontWeight = state.textStyles.time.bold ? '700' : '';
     }
-  }
-
-  /* ---------- Color-sampling & overlay ---------- */
-
-  // Compute average color of the visible background in the area of sampleElem
-  function computeAverageColorOfElement(sampleElem) {
-    return new Promise((resolve) => {
-      const bg = state.bgCurrent || '';
-      if (!bg) return resolve(null);
-
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.onload = function(){
-        const rect = sampleElem.getBoundingClientRect();
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.max(1, Math.floor(rect.width));
-        canvas.height = Math.max(1, Math.floor(rect.height));
-        const ctx = canvas.getContext('2d');
-
-        // draw image sized "cover" to fill the canvas (approx)
-        const iw = img.naturalWidth, ih = img.naturalHeight;
-        const cw = canvas.width, ch = canvas.height;
-        const scale = Math.max(cw/iw, ch/ih);
-        const sw = iw*scale, sh = ih*scale;
-        const sx = (cw - sw)/2, sy = (ch - sh)/2;
-        try {
-          ctx.drawImage(img, sx, sy, sw, sh);
-          const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
-          let r=0,g=0,b=0,count=0;
-          const stepX = Math.max(1, Math.floor(canvas.width/20));
-          const stepY = Math.max(1, Math.floor(canvas.height/10));
-          for (let y=0;y<canvas.height;y+=stepY){
-            for (let x=0;x<canvas.width;x+=stepX){
-              const idx = (y*canvas.width + x)*4;
-              r += data[idx]; g += data[idx+1]; b += data[idx+2]; count++;
-            }
-          }
-          r = Math.round(r/count); g = Math.round(g/count); b = Math.round(b/count);
-          resolve({r,g,b});
-        } catch (e) {
-          // CORS or other issue
-          console.warn('sample failed', e);
-          resolve(null);
-        }
-      };
-      img.onerror = function(){ resolve(null); };
-      img.src = state.bgCurrent;
-    });
-  }
-
-  function luminanceFromRGB({r,g,b}) {
-    return (0.2126*r + 0.7152*g + 0.0722*b) / 255;
-  }
-
-  async function updateBarOverlaysBasedOnBackground(){
-    // top
-    const pairs = [
-      {overlay: topOverlay, sample: topBar},
-      {overlay: bottomOverlay, sample: bottomBar}
-    ];
-    for (const p of pairs) {
-      const avg = await computeAverageColorOfElement(p.sample);
-      if (!avg) {
-        p.overlay.style.background = 'rgba(0,0,0,0.45)';
-        continue;
-      }
-      if (state.colorOverride) {
-        // derive darkest or lightest shade of override color based on brightness
-        const hex = state.colorOverride.replace('#','');
-        if (hex.length === 6) {
-          const cr = parseInt(hex.slice(0,2),16);
-          const cg = parseInt(hex.slice(2,4),16);
-          const cb = parseInt(hex.slice(4,6),16);
-          const lum = luminanceFromRGB({r:cr,g:cg,b:cb});
-          if (lum > 0.6) {
-            // darken it
-            p.overlay.style.background = `rgba(${Math.floor(cr*0.12)},${Math.floor(cg*0.12)},${Math.floor(cb*0.12)},${0.95})`;
-          } else {
-            // lighten / opaque white-ish
-            p.overlay.style.background = `rgba(${Math.min(255,cr+180)},${Math.min(255,cg+180)},${Math.min(255,cb+180)},${0.95})`;
-          }
-          continue;
-        }
-      }
-      const lum = luminanceFromRGB(avg);
-      if (lum < 0.5) p.overlay.style.background = 'rgba(0,0,0,0.85)';
-      else p.overlay.style.background = 'rgba(255,255,255,0.95)';
+    if (dateEl && state.textStyles.date) {
+      dateEl.style.color = state.textStyles.date.color || '';
+      dateEl.style.fontWeight = state.textStyles.date.bold ? '700' : '';
+    }
+    if (quoteEl && state.textStyles.quote) {
+      quoteEl.style.color = state.textStyles.quote.color || '';
+      quoteEl.style.fontWeight = state.textStyles.quote.bold ? '700' : '';
     }
   }
 
   /* ---------- Date / Time / Quotes ---------- */
-
   function formatDate(d) {
     const day = String(d.getDate()).padStart(2,'0');
     const month = d.toLocaleString(undefined, { month: 'long' });
     const weekday = d.toLocaleString(undefined, { weekday: 'long' });
     return `${day} ${month}, ${weekday}`;
   }
-
   function formatTime(d) {
-    if (state.clock24) {
-      return d.toLocaleTimeString([], { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    } else {
-      return d.toLocaleTimeString([], { hour12:true, hour:'2-digit', minute:'2-digit', second:'2-digit' });
-    }
+    if (state.clock24) return d.toLocaleTimeString([], { hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    return d.toLocaleTimeString([], { hour12:true, hour:'2-digit', minute:'2-digit', second:'2-digit' });
   }
-
   function updateTime() {
     const now = new Date();
-    dateEl.textContent = formatDate(now);
-    timeEl.textContent = formatTime(now);
+    dateEl && (dateEl.textContent = formatDate(now));
+    timeEl && (timeEl.textContent = formatTime(now));
   }
+  setInterval(updateTime,1000);
 
-  function chooseRandomQuote() {
-    if (!state.quotes || !state.quotes.length) return '';
-    return state.quotes[Math.floor(Math.random()*state.quotes.length)];
-  }
-
-  clockToggle.addEventListener('click', async () => {
-    state.clock24 = !state.clock24;
-    await storageSyncSet({ clock24: state.clock24 });
-    updateTime();
+  clockToggle && clockToggle.addEventListener('click', async () => {
+    state.clock24 = !state.clock24; await storageSyncSet({ clock24: state.clock24 }); updateTime();
   });
 
-  editQuotesBtn.addEventListener('click', () => {
-    quotesTextarea.value = (state.quotes || []).join('\n');
-    modal.setAttribute('aria-hidden','false');
+  editQuotesBtn && editQuotesBtn.addEventListener('click', () => {
+    quotesTextarea.value = (state.quotes || []).join('\n'); modal && modal.setAttribute('aria-hidden','false');
   });
-  closeModalBtn.addEventListener('click', () => modal.setAttribute('aria-hidden','true'));
-  saveQuotesBtn.addEventListener('click', async () => {
-    const arr = quotesTextarea.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    state.quotes = arr;
+  closeModalBtn && closeModalBtn.addEventListener('click', () => modal && modal.setAttribute('aria-hidden','true'));
+  saveQuotesBtn && saveQuotesBtn.addEventListener('click', async () => {
+    state.quotes = (quotesTextarea.value||'').split(/\n/).map(s => s.trim()).filter(Boolean);
     await storageSyncSet({ quotes: state.quotes });
-    quoteEl.textContent = chooseRandomQuote();
-    modal.setAttribute('aria-hidden','true');
+    modal && modal.setAttribute('aria-hidden','true');
+    quoteEl && (quoteEl.textContent = (state.quotes && state.quotes.length) ? state.quotes[0] : '');
   });
 
-  /* ---------- Color override ---------- */
+  /* ---------- Font list & Text Styling UI ---------- */
+  const availableFonts = [
+    { name: 'Inter (Default)', family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' },
+    { name: 'Molle', family: 'Molle, cursive' },
+    { name: 'Cossette', family: 'Cossette, serif' }
+  ];
 
-  colorApplyBtn.addEventListener('click', async () => {
-    const val = (colorInput.value || '').trim();
-    if (!val) {
-      state.colorOverride = '';
-      await storageSyncSet({ colorOverride: '' });
-    } else {
-      // color input gives us a hex value directly
-      state.colorOverride = val;
-      await storageSyncSet({ colorOverride: state.colorOverride });
-    }
-    applyColorToBars();
-    updateBarOverlaysBasedOnBackground();
-  });
-
-  /* ---------- Sticky notes ---------- */
-
-  async function loadNotesFromLocal() {
-    const res = await storageLocalGet(['notes']);
-    state.notes = res.notes || [];
-  }
-  async function saveNotesToLocal() { await storageLocalSet({ notes: state.notes }); }
-
-  function renderNotes() {
-    notesList.innerHTML = '';
-    state.notes.forEach(n => {
-      const note = document.createElement('div');
-      note.className = 'note color-' + (n.color || 'yellow');
-
-      const ta = document.createElement('textarea');
-      ta.value = n.text || '';
-      ta.placeholder = 'Note...';
-      ta.addEventListener('input', () => {
-        const found = state.notes.find(x => x.id === n.id);
-        if (found) { found.text = ta.value; saveNotesToLocal(); }
+  function populateFontList() {
+    if (!fontList) return;
+    fontList.innerHTML = '';
+    availableFonts.forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = 'mini-btn';
+      btn.textContent = f.name;
+      btn.addEventListener('click', () => {
+        document.body.style.fontFamily = f.family;
       });
-
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.gap = '6px';
-      row.style.marginTop = '8px';
-      row.style.justifyContent = 'flex-end';
-
-      const del = document.createElement('button');
-      del.className = 'mini-btn';
-      del.textContent = 'Delete';
-      del.addEventListener('click', async () => {
-        if (confirm('Delete note?')) {
-          state.notes = state.notes.filter(x => x.id !== n.id);
-          await saveNotesToLocal();
-          renderNotes();
-        }
-      });
-
-      const select = document.createElement('select');
-      ['yellow','pink','blue'].forEach(c => {
-        const opt = document.createElement('option'); opt.value = c; opt.text = c;
-        if (c === n.color) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener('change', async () => {
-        const f = state.notes.find(x => x.id === n.id);
-        if (f) { f.color = select.value; await saveNotesToLocal(); renderNotes(); }
-      });
-
-      row.appendChild(select);
-      row.appendChild(del);
-      note.appendChild(ta);
-      note.appendChild(row);
-      notesList.appendChild(note);
+      fontList.appendChild(btn);
     });
   }
 
-  addNoteBtn.addEventListener('click', async () => {
-    const newNote = { id: uid(), color: 'yellow', text: '' };
+  // Open text styling modal for whole center text area (or for a specific target)
+  function openTextStyling(target) {
+    currentTextTarget = target || null;
+    // populate inputs with current textStyles
+    if (timeColorInput) timeColorInput.value = state.textStyles.time.color || '#000000';
+    if (dateColorInput) dateColorInput.value = state.textStyles.date.color || '#000000';
+    if (quoteColorInput) quoteColorInput.value = state.textStyles.quote.color || '#000000';
+    if (timeBold) timeBold.checked = !!state.textStyles.time.bold;
+    if (dateBold) dateBold.checked = !!state.textStyles.date.bold;
+    if (quoteBold) quoteBold.checked = !!state.textStyles.quote.bold;
+
+    if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','false');
+  }
+
+  if (openTextStyleBtn) openTextStyleBtn.addEventListener('click', () => openTextStyling(null));
+
+  // allow clicking on time/date/quote to open text styling for convenience
+  if (timeEl) timeEl.addEventListener('click', () => openTextStyling('time'));
+  if (dateEl) dateEl.addEventListener('click', () => openTextStyling('date'));
+  if (quoteEl) quoteEl.addEventListener('click', () => openTextStyling('quote'));
+
+  if (fontApplyBtn) {
+    fontApplyBtn.addEventListener('click', async () => {
+      state.textStyles.time.color = timeColorInput.value || '';
+      state.textStyles.date.color = dateColorInput.value || '';
+      state.textStyles.quote.color = quoteColorInput.value || '';
+      state.textStyles.time.bold = !!timeBold.checked;
+      state.textStyles.date.bold = !!dateBold.checked;
+      state.textStyles.quote.bold = !!quoteBold.checked;
+      await storageSyncSet({ textStyles: state.textStyles });
+      applyTextStyles();
+      if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','true');
+    });
+  }
+  if (fontCancelBtn) fontCancelBtn.addEventListener('click', () => fontPickerModal && fontPickerModal.setAttribute('aria-hidden','true'));
+
+  /* ---------- Notes: movable sticky notes ---------- */
+  async function loadNotes() {
+    const res = await storageLocalGet(['notes']);
+    state.notes = res.notes || [];
+  }
+  async function saveNotes() { await storageLocalSet({ notes: state.notes }); }
+
+  function createNoteElement(n) {
+    const note = document.createElement('div');
+    note.className = 'note color-' + (n.color || 'yellow');
+    note.style.left = (n.x != null ? n.x : 24) + 'px';
+    note.style.top = (n.y != null ? n.y : 140 + (state.notes.indexOf(n) * 20)) + 'px';
+    note.dataset.id = n.id;
+
+    const handle = document.createElement('div');
+    handle.className = 'note-handle';
+    handle.textContent = '≡';
+
+    const ta = document.createElement('textarea');
+    ta.value = n.text || '';
+    ta.placeholder = 'Note...';
+    ta.addEventListener('input', () => {
+      const found = state.notes.find(x => x.id === n.id);
+      if (found) { found.text = ta.value; saveNotes(); }
+    });
+
+    const row = document.createElement('div');
+    row.style.display = 'flex'; row.style.gap = '6px'; row.style.marginTop = '8px'; row.style.justifyContent = 'flex-end';
+
+    const del = document.createElement('button');
+    del.className = 'mini-btn';
+    del.textContent = 'Delete';
+    del.addEventListener('click', async () => {
+      if (confirm('Delete note?')) {
+        state.notes = state.notes.filter(x => x.id !== n.id);
+        await saveNotes();
+        renderNotes();
+      }
+    });
+
+    const select = document.createElement('select');
+    ['yellow','pink','blue'].forEach(c => {
+      const opt = document.createElement('option'); opt.value = c; opt.text = c;
+      if (c === n.color) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', async () => {
+      const f = state.notes.find(x => x.id === n.id);
+      if (f) { f.color = select.value; await saveNotes(); renderNotes(); }
+    });
+
+    row.appendChild(select); row.appendChild(del);
+    note.appendChild(handle); note.appendChild(ta); note.appendChild(row);
+
+    // Dragging via pointer events
+    let dragging = false;
+    let startX=0, startY=0, origX=0, origY=0;
+    const onPointerMove = (ev) => {
+      if (!dragging) return;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      const nx = Math.max(0, origX + dx);
+      const ny = Math.max(0, origY + dy);
+      note.style.left = nx + 'px';
+      note.style.top = ny + 'px';
+    };
+    const onPointerUp = async (ev) => {
+      if (!dragging) return;
+      dragging = false;
+      handle.releasePointerCapture(ev.pointerId);
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      const id = note.dataset.id;
+      const f = state.notes.find(x => x.id === id);
+      if (f) { f.x = parseInt(note.style.left,10); f.y = parseInt(note.style.top,10); await saveNotes(); }
+    };
+    handle.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      dragging = true;
+      startX = ev.clientX; startY = ev.clientY;
+      origX = parseInt(note.style.left || 0, 10);
+      origY = parseInt(note.style.top || 0, 10);
+      handle.setPointerCapture(ev.pointerId);
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
+    });
+
+    return note;
+  }
+
+  function renderNotes() {
+    if (!notesList) return;
+    notesList.innerHTML = '';
+    state.notes.forEach(n => {
+      const el = createNoteElement(n);
+      notesList.appendChild(el);
+    });
+  }
+
+  addNoteFab && addNoteFab.addEventListener('click', async () => {
+    const newNote = { id: uid(), color: 'yellow', text: '', x: 24, y: 140 + (state.notes.length * 20) };
     state.notes.push(newNote);
-    await saveNotesToLocal();
+    await saveNotes();
     renderNotes();
   });
 
-  /* ---------- Add link prompt handlers ---------- */
-
-  topAddBtn.addEventListener('click', () => {
-    addLinkPrompt('top');
+  /* ---------- Icon/link color apply ---------- */
+  colorApplyBtn && colorApplyBtn.addEventListener('click', async () => {
+    const val = (colorInput && colorInput.value) ? colorInput.value.trim() : '';
+    if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
+      const color = (val[0] === '#') ? val : ('#' + val);
+      state.colorOverride = color;
+      await storageSyncSet({ colorOverride: state.colorOverride });
+      applyColorToBars();
+    } else {
+      alert('Please pick a color.');
+    }
   });
-  bottomAddBtn.addEventListener('click', () => {
-    addLinkPrompt('bottom');
-  });
 
-  function addLinkPrompt(list) {
-    const url = prompt('Enter URL (https://...)');
-    if (!url) return;
-    const title = prompt('Title (optional)', url.replace(/^https?:\/\//,'').replace(/\/.*$/,''));
-    const entry = { title: title || url, url: url };
-    if (list === 'top') state.topLinks.push(entry);
-    else state.bottomLinks.push(entry);
-    storageSyncSet({ topLinks: state.topLinks, bottomLinks: state.bottomLinks }).then(renderBars);
-  }
-
-  /* ---------- Initialization and load ---------- */
-
+  /* ---------- Load / save initial state ---------- */
   async function loadInitialState() {
-    // load sync keys: topLinks, bottomLinks, quotes, clock24, colorOverride
-    const syncRes = await storageSyncGet(['topLinks','bottomLinks','quotes','clock24','colorOverride']);
+    const syncRes = await storageSyncGet(['topLinks','bottomLinks','quotes','clock24','colorOverride','textStyles']);
     if (syncRes.topLinks) state.topLinks = syncRes.topLinks;
     if (syncRes.bottomLinks) state.bottomLinks = syncRes.bottomLinks;
     if (syncRes.quotes) state.quotes = syncRes.quotes;
     if (typeof syncRes.clock24 !== 'undefined') state.clock24 = syncRes.clock24;
     if (syncRes.colorOverride) state.colorOverride = syncRes.colorOverride;
+    if (syncRes.textStyles) state.textStyles = Object.assign({}, state.textStyles, syncRes.textStyles);
 
-    // load local: bgList, bgCurrent, notes
-    const localRes = await storageLocalGet(['bgList','bgCurrent','notes']);
-    state.bgList = localRes.bgList || [];
-    state.bgCurrent = localRes.bgCurrent || '';
-    state.notes = localRes.notes || [];
-  }
+    const localRes = await storageLocalGet(['bgCurrent','notes']);
+    state.bgCurrent = localRes.bgCurrent || state.bgCurrent;
+    state.notes = localRes.notes || state.notes;
 
-  async function init() {
-    await loadInitialState();
+    if (state.bgCurrent) document.body.style.backgroundImage = `url(${state.bgCurrent})`;
 
-    // set any current background (or choose random gallery)
-    if (state.bgList && state.bgList.length) {
-      // pick a random one on load
-      const r = state.bgList[Math.floor(Math.random()*state.bgList.length)];
-      setBodyBackground(r);
-    } else if (state.bgCurrent) {
-      setBodyBackground(state.bgCurrent);
-    }
+    if (colorInput && state.colorOverride) colorInput.value = state.colorOverride;
+    if (timeColorInput && state.textStyles.time) timeColorInput.value = state.textStyles.time.color || '#000000';
+    if (dateColorInput && state.textStyles.date) dateColorInput.value = state.textStyles.date.color || '#000000';
+    if (quoteColorInput && state.textStyles.quote) quoteColorInput.value = state.textStyles.quote.color || '#000000';
+    if (timeBold) timeBold.checked = !!state.textStyles.time.bold;
+    if (dateBold) dateBold.checked = !!state.textStyles.date.bold;
+    if (quoteBold) quoteBold.checked = !!state.textStyles.quote.bold;
 
-    // initial renders
+    populateFontList();
     renderBars();
+    await loadNotes();
     renderNotes();
-    quoteEl.textContent = chooseRandomQuote();
-    if (state.colorOverride) colorInput.value = state.colorOverride;
 
     updateTime();
-    setInterval(updateTime, 1000);
-
-    // compute overlays a bit after background loads
-    setTimeout(updateBarOverlaysBasedOnBackground, 400);
-
-    // handle window resize
-    window.addEventListener('resize', updateBarOverlaysBasedOnBackground);
+    applyTextStyles();
   }
 
-  // delegate: set background and save to local
-  function setBodyBackground(dataUrl) {
-    if (dataUrl) {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
-      state.bgCurrent = dataUrl;
-      storageLocalSet({ bgCurrent: state.bgCurrent }).then(() => updateBarOverlaysBasedOnBackground());
-    } else {
-      document.body.style.backgroundImage = '';
-    }
+  /* ---------- Settings toggle wiring (also available in ui-enhancements.js) ---------- */
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      const open = document.body.classList.toggle('settings-open');
+      if (centerControls) centerControls.classList.toggle('hidden', !open);
+      settingsBtn.classList.toggle('active', open);
+    });
+  }
+  if (settingsDone) {
+    settingsDone.addEventListener('click', () => {
+      document.body.classList.remove('settings-open');
+      if (centerControls) centerControls.classList.add('hidden');
+      if (settingsBtn) settingsBtn.classList.remove('active');
+    });
   }
 
-  // expose a small API for debugging in console (optional)
-  window.__customNewTab = {
-    state,
-    reload: init
-  };
-
-  // Start
+  /* ---------- Init ---------- */
+  async function init() { await loadInitialState(); }
   init();
+
+  // debug
+  window.__customNewTab = { state, renderBars, applyColorToBars, openTextStyling };
 
 })();
