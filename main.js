@@ -505,7 +505,7 @@
   function addLinkPrompt(list) {
     const url = prompt('Enter URL (https://...)');
     if (!url) return;
-    const title = prompt('Title (optional)', url.replace(/^https?:\/\/,'').replace(/\/.*$/,'')).trim();
+    const title = prompt('Title (optional)', url.replace(/^https?:\/\//,'').replace(/\/.*$/,'')).trim();
     const entry = { title: title || url, url: url };
     if (list === 'top') state.topLinks.push(entry);
     else state.bottomLinks.push(entry);
