@@ -1,7 +1,7 @@
 // main.js - Manifest V3 compatible new-tab logic using chrome.storage
 // Features implemented:
 // - top/bottom bars (add/remove links, favicon), right-click removal
-// - background upload and gallery (stored in chrome.storage.local as data URLs)
+// - background upload (gallery management removed per request)
 // - on-load random background selection, and overlay color selection via pixel sampling
 // - custom icon/text color override (sync setting), used for icons/text and overlay derivation
 // - center date/time (12/24 toggle), quotes (editable list saved to storage)
@@ -49,8 +49,6 @@
   const closeModalBtn = document.getElementById('close-modal');
 
   const bgUpload = document.getElementById('bg-upload');
-  const bgAddToSlideshowBtn = document.getElementById('bg-add-to-slideshow');
-  const bgManageBtn = document.getElementById('bg-manage');
 
   const colorInput = document.getElementById('color-input');
   const colorApplyBtn = document.getElementById('color-apply');
@@ -110,7 +108,7 @@
     a.href = link.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    // apply color override if present
+    // apply color override to text if present
     if (state.colorOverride) a.style.color = state.colorOverride;
 
     const icon = document.createElement('span');
@@ -122,8 +120,9 @@
       img.alt = '';
       icon.appendChild(img);
     } else {
+      // Letter icon: apply color to text only (background is transparent)
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
-      if (state.colorOverride) icon.style.background = state.colorOverride;
+      if (state.colorOverride) icon.style.color = state.colorOverride;
     }
 
     const label = document.createElement('div');
@@ -134,7 +133,19 @@
     a.appendChild(icon);
     a.appendChild(label);
 
-    // right-click remove
+    // Add remove (×) button
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-shortcut';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove shortcut';
+    removeBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      removeLink(link);
+    });
+    a.appendChild(removeBtn);
+
+    // right-click remove (legacy option)
     a.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
       if (confirm('Remove "' + (link.title||link.url) + '"?')) {
@@ -155,15 +166,17 @@
 
   function applyColorToBars(){
     qsa('.link-item').forEach(a => {
+      // Apply color to link text
       a.style.color = state.colorOverride || '';
       const icon = a.querySelector('.icon');
       if (icon && state.colorOverride) {
-        // make icon background the override color for visibility
-        icon.style.background = state.colorOverride;
-        icon.style.color = '#fff';
-      } else if (icon) {
-        icon.style.background = '';
-        icon.style.color = '';
+        // Only apply color to letter icons (not favicons)
+        const hasImage = icon.querySelector('img');
+        if (!hasImage) {
+          // Letter icon: apply text color only
+          icon.style.color = state.colorOverride;
+        }
+        // Do NOT change icon background (it's transparent)
       }
     });
   }
@@ -237,30 +250,7 @@
     alert('Uploaded ' + files.length + ' image(s).');
   });
 
-  bgAddToSlideshowBtn.addEventListener('click', async () => {
-    if (!state.bgCurrent) { alert('No current background to add.'); return; }
-    state.bgList.push(state.bgCurrent);
-    await saveBackgroundsToLocal();
-    alert('Added current background to gallery.');
-  });
-
-  bgManageBtn.addEventListener('click', async () => {
-    const opt = prompt('Manage backgrounds:\n1) Count\n2) Clear gallery\n3) Pick random from gallery\nEnter option number');
-    if (!opt) return;
-    if (opt === '1') alert('Gallery count: ' + state.bgList.length);
-    else if (opt === '2') {
-      if (confirm('Clear gallery?')) {
-        state.bgList = [];
-        await saveBackgroundsToLocal();
-        alert('Gallery cleared.');
-      }
-    } else if (opt === '3') {
-      if (state.bgList.length) {
-        const r = state.bgList[Math.floor(Math.random()*state.bgList.length)];
-        setBodyBackground(r);
-      } else alert('Gallery empty.');
-    }
-  });
+  // Gallery management removed per user request
 
   function pickRandomBackgroundOnLoad() {
     if (state.bgList && state.bgList.length) {
@@ -414,9 +404,8 @@
       state.colorOverride = '';
       await storageSyncSet({ colorOverride: '' });
     } else {
-      const m = val.match(/^#?[0-9a-fA-F]{6}$/);
-      if (!m) { alert('Enter a hex color like #336699'); return; }
-      state.colorOverride = (val[0]==='#') ? val : ('#' + val);
+      // Native color input always returns #rrggbb format
+      state.colorOverride = val;
       await storageSyncSet({ colorOverride: state.colorOverride });
     }
     applyColorToBars();
@@ -551,17 +540,6 @@
 
     // handle window resize
     window.addEventListener('resize', updateBarOverlaysBasedOnBackground);
-  }
-
-  // delegate: set background and save to local
-  function setBodyBackground(dataUrl) {
-    if (dataUrl) {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
-      state.bgCurrent = dataUrl;
-      storageLocalSet({ bgCurrent: state.bgCurrent }).then(() => updateBarOverlaysBasedOnBackground());
-    } else {
-      document.body.style.backgroundImage = '';
-    }
   }
 
   // expose a small API for debugging in console (optional)

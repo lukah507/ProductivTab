@@ -15,10 +15,11 @@
     return new Promise(resolve => chrome.storage.local.set(obj, resolve));
   }
 
-  /* ---------- Settings toggle ---------- */
+  /* ---------- Settings toggle with body class ---------- */
   const settingsBtn = document.getElementById('settings-button');
   const centerControls = document.getElementById('center-controls');
   const colorInput = document.getElementById('color-input');
+  const settingsDoneBtn = document.getElementById('settings-done');
 
   let settingsOpen = false;
 
@@ -26,22 +27,38 @@
     settingsBtn.addEventListener('click', () => {
       settingsOpen = !settingsOpen;
       if (settingsOpen) {
+        // Show settings
         centerControls.classList.remove('hidden');
+        centerControls.setAttribute('aria-hidden', 'false');
         settingsBtn.classList.add('active');
+        document.body.classList.add('settings-open');
       } else {
+        // Hide settings
         centerControls.classList.add('hidden');
+        centerControls.setAttribute('aria-hidden', 'true');
         settingsBtn.classList.remove('active');
+        document.body.classList.remove('settings-open');
       }
     });
+
+    // Done button closes settings
+    if (settingsDoneBtn) {
+      settingsDoneBtn.addEventListener('click', () => {
+        settingsOpen = false;
+        centerControls.classList.add('hidden');
+        centerControls.setAttribute('aria-hidden', 'true');
+        settingsBtn.classList.remove('active');
+        document.body.classList.remove('settings-open');
+      });
+    }
 
     // Update settings button background when color is applied
     const colorApplyBtn = document.getElementById('color-apply');
     if (colorApplyBtn) {
       colorApplyBtn.addEventListener('click', async () => {
         const val = (colorInput.value || '').trim();
-        if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
-          const color = (val[0] === '#') ? val : ('#' + val);
-          settingsBtn.style.setProperty('--accent-color', color);
+        if (val) {
+          settingsBtn.style.setProperty('--accent-color', val);
         }
       });
     }
@@ -232,96 +249,10 @@
     }
   }
 
-  /* ---------- High-res favicon enhancer ---------- */
-  // Enhances favicon images by requesting higher resolution from Google's favicon service
-  // Falls back to original if high-res version fails to load
-  window.enhanceFaviconImage = function(imgElement, url) {
-    try {
-      const u = new URL(url);
-      const domain = u.hostname;
-      
-      // Request larger favicon from Google's service (128x128 instead of default 16x16)
-      const highResUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-      
-      // Try to load high-res version with error handling
-      const testImg = new Image();
-      testImg.onload = function() {
-        // High-res loaded successfully, replace original
-        imgElement.src = highResUrl;
-      };
-      testImg.onerror = function() {
-        // High-res failed to load, keep the original lower-res favicon
-        // This handles cases where Google's service is unavailable or domain has no icon
-      };
-      testImg.src = highResUrl;
-    } catch (e) {
-      // Invalid URL format, keep original favicon
-      console.warn('Failed to enhance favicon for URL:', url, e);
-    }
-  };
-
-  /* ---------- Rectangle color picker ---------- */
-  window.openRectColorPicker = function(rectId) {
-    // Load saved color if any
-    storageSyncGet([`rectcolor_${rectId}`]).then(res => {
-      const savedColor = res[`rectcolor_${rectId}`] || '#ffffff';
-      
-      // Create a temporary color input for better UX
-      const input = document.createElement('input');
-      input.type = 'color';
-      input.value = savedColor;
-      input.style.position = 'fixed';
-      input.style.top = '-100px';
-      document.body.appendChild(input);
-      
-      input.addEventListener('change', () => {
-        const hexColor = input.value;
-        const rectEl = document.getElementById(rectId);
-        if (rectEl) {
-          rectEl.style.background = hexColor;
-          // Save to storage
-          storageSyncSet({ [`rectcolor_${rectId}`]: hexColor });
-        }
-        document.body.removeChild(input);
-      });
-      
-      input.addEventListener('blur', () => {
-        // Remove input if user cancels
-        setTimeout(() => {
-          if (input.parentNode) {
-            document.body.removeChild(input);
-          }
-        }, 100);
-      });
-      
-      // Trigger the color picker
-      input.click();
-    });
-  };
-
-  /* ---------- Hydrate rectangle colors on load ---------- */
-  async function hydrateRectColors() {
-    // Get all icon elements with IDs starting with 'rect-'
-    const rects = document.querySelectorAll('[id^="rect-"]');
-    for (const rect of rects) {
-      const rectId = rect.id;
-      const res = await storageSyncGet([`rectcolor_${rectId}`]);
-      const color = res[`rectcolor_${rectId}`];
-      if (color) {
-        rect.style.background = color;
-      }
-    }
-  }
-
   /* ---------- Initialize on load ---------- */
   async function initEnhancements() {
     await applyDefaultBackgroundIfNeeded();
     await hydrateElementStyles();
-    
-    // Wait for bars to be initially rendered by main.js before hydrating rect colors
-    // This timeout ensures the DOM elements are ready. The MutationObserver below
-    // will handle any subsequent updates.
-    setTimeout(hydrateRectColors, 500);
   }
 
   // Run initialization when DOM is ready
@@ -330,15 +261,5 @@
   } else {
     initEnhancements();
   }
-
-  // Re-hydrate rect colors when bars are re-rendered
-  // (hook into main.js render if needed, or use MutationObserver)
-  const observer = new MutationObserver(() => {
-    hydrateRectColors();
-  });
-  const topBar = document.getElementById('top-bar');
-  const bottomBar = document.getElementById('bottom-bar');
-  if (topBar) observer.observe(topBar, { childList: true });
-  if (bottomBar) observer.observe(bottomBar, { childList: true });
 
 })();
