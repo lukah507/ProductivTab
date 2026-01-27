@@ -1,77 +1,51 @@
 :root{
-  --bar-height:64px;
-  --bar-padding:10px;
-  --bar-radius:8px;
-  --overlay-opacity:0.92;
-  --icon-size:40px;
-  --text-color: #ffffff;
-  --bar-bg-color: rgba(0,0,0,0.3);
+  --icon-size:36px;
+  --text-color:#ffffff;
+  --accent-color:#336699;
 }
 
-*{box-sizing:border-box}
-html,body,#root{height:100%;width:100%;margin:0;padding:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
-body{background-size:cover;background-position:center;background-repeat:no-repeat;overflow:hidden;color:var(--text-color)}
+/* Global reset basics */
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:var(--text-color);background:#111}
 
-/* BAR WRAP (slightly larger clickable transparent area) */
+/* Bar wrap */
 .bar-wrap{
   position:fixed;
-  left:0;right:0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:6px 12px;
+  left:0;
+  right:0;
   pointer-events:none;
-  z-index:6;
 }
-#top-bar-wrap{top:6px}
-#bottom-bar-wrap{bottom:6px;justify-content:center}
+#top-bar-wrap{top:12px; height:48px; display:flex; align-items:center; padding:8px 12px; gap:8px;}
+#bottom-bar-wrap{bottom:12px; height:48px; display:flex; align-items:center; padding:8px 12px; gap:8px;}
 
-/* the slightly-larger invisible area */
+/* overlays (used for contrast over backgrounds) */
 .bar-overlay{
-  pointer-events:auto;
-  position:absolute;
-  left:6px; right:6px;
-  height:var(--bar-height);
-  border-radius:calc(var(--bar-radius) + 2px);
-  background: var(--bar-bg-color);
-  transition: background .25s ease;
-  z-index:1;
+  position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:1;
 }
 
-/* visible bar containing links */
+/* visible bars */
 .link-bar{
-  position:relative;
-  pointer-events:auto;
   display:flex;
-  gap:10px;
-  height:var(--bar-height);
+  gap:8px;
   align-items:center;
-  padding:var(--bar-padding);
-  margin:0 18px;
-  border-radius:var(--bar-radius);
   z-index:2;
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(6px);
-  min-height:var(--bar-height);
+  pointer-events:auto;
 }
 
 /* link item */
 .link-item{
-  position: relative;
-  display:flex;
+  display:inline-flex;
+  gap:8px;
   align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:6px;
-  width:70px;
-  text-decoration:none;
+  padding:6px 8px;
   color:var(--text-color);
   font-size:12px;
   border-radius:6px;
-  padding:4px;
+  text-decoration:none;
+  position:relative;
 }
-.link-item:hover{background:rgba(255,255,255,0.06)}
+.link-item:hover{ background: rgba(255,255,255,0.04); }
 
+<<<<<<< Updated upstream
 /* Remove shortcut button - hidden by default, shown when settings open */
 .remove-shortcut {
   position: absolute;
@@ -102,6 +76,9 @@ body.settings-open .remove-shortcut {
 }
 
 /* icon circle */
+=======
+/* icon — make transparent background; remove opaque rectangle */
+>>>>>>> Stashed changes
 .icon{
   position: relative;
   width:var(--icon-size);
@@ -110,11 +87,19 @@ body.settings-open .remove-shortcut {
   display:flex;
   align-items:center;
   justify-content:center;
+<<<<<<< Updated upstream
   background:transparent;
+=======
+  background: transparent; /* removed opaque rectangle per request */
+>>>>>>> Stashed changes
   overflow:hidden;
+  font-weight:700;
+  font-size:14px;
+  color:inherit;
 }
 .icon img{width:100%;height:100%;object-fit:cover;display:block}
 
+<<<<<<< Updated upstream
 /* Add buttons - hidden by default, shown when settings open */
 #top-add-btn, #bottom-add-btn {
   pointer-events: auto;
@@ -125,6 +110,23 @@ body.settings-open .remove-shortcut {
 body.settings-open #top-add-btn,
 body.settings-open #bottom-add-btn {
   display: block;
+=======
+/* label */
+.label{ font-size:12px; line-height:1; }
+
+/* Add buttons hidden by default until settings open */
+#top-add-btn,#bottom-add-btn{
+  pointer-events:auto;
+  z-index:20;
+  position:relative;
+  display:none;
+}
+
+/* show add buttons when settings are open */
+body.settings-open #top-add-btn,
+body.settings-open #bottom-add-btn {
+  display:inline-block;
+>>>>>>> Stashed changes
 }
 
 /* center stack */
@@ -133,32 +135,49 @@ body.settings-open #bottom-add-btn {
   left:50%;top:50%;
   transform:translate(-50%,-50%);
   text-align:center;
-  z-index:3;
+  z-index:10;
   pointer-events:none;
 }
 .center-date{font-size:18px;opacity:0.95;pointer-events:auto}
 .center-time{font-size:54px;font-weight:600;margin-top:8px;pointer-events:auto}
 .center-quote{font-size:16px;margin-top:8px;opacity:0.95;pointer-events:auto}
 
+<<<<<<< Updated upstream
 /* center controls - positioned fixed bottom-center above bottom bar */
 .center-controls{
   position: fixed;
   bottom: 90px;
   left: 50%;
+=======
+/* center-controls moved to bottom-center (appears above bottom bar) */
+.center-controls{
+  position: fixed;
+  left: 50%;
+  bottom: 84px; /* sits above bottom bar area; tweak as needed */
+>>>>>>> Stashed changes
   transform: translateX(-50%);
   display:flex;
   gap:8px;
   justify-content:center;
   pointer-events:auto;
+<<<<<<< Updated upstream
   z-index: 7;
 }
+=======
+  z-index:25;
+}
+
+/* Buttons / inputs */
+>>>>>>> Stashed changes
 .mini-btn{
   pointer-events:auto;
   padding:6px 8px;border-radius:8px;border:none;background:rgba(0,0,0,0.45);
-  color:#fff;cursor:pointer;font-size:13px
+  color:#fff;cursor:pointer;font-size:13px;
 }
 .file-label{display:inline-block}
+.color-input{width:36px;height:36px;padding:4px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:transparent;vertical-align:middle}
 
+<<<<<<< Updated upstream
 /* color picker input */
 .color-input{
   width: 50px;
@@ -171,22 +190,52 @@ body.settings-open #bottom-add-btn {
 /* notes */
 #notes-container{position:fixed;right:12px;top:110px;width:260px;z-index:4;pointer-events:auto}
 .note{padding:8px;border-radius:8px;margin-bottom:10px;box-shadow:0 6px 18px rgba(0,0,0,0.16);color:#000}
+=======
+/* Notes */
+#notes-container{position:fixed;right:12px;top:110px;width:260px;z-index:15;pointer-events:auto}
+.note{padding:8px;border-radius:8px;margin-bottom:10px;box-shadow:0 6px 18px rgba(0,0,0,0.16);color:#000;background:#fff}
+>>>>>>> Stashed changes
 .note textarea{width:100%;height:100px;border:0;background:transparent;resize:none;outline:none;font-size:14px;color:#000}
 
-/* note colors */
+/* note colors (kept for backward compatibility) */
 .note.color-yellow{background:#fffb7a}
 .note.color-pink{background:#ffc7ed}
 .note.color-blue{background:#bfe9ff}
 
 /* modal */
-.modal{position:fixed;left:0;right:0;top:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:10}
+.modal{position:fixed;left:0;right:0;top:0;bottom:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:40}
 .modal[aria-hidden="false"]{display:flex}
 .modal-content{background:#fff;padding:14px;border-radius:8px;width:560px;max-width:96%}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
 
+/* Remove-shortcut button (visible only in settings mode) */
+.remove-shortcut{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  border:none;
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  font-weight:700;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:6;
+  font-size:13px;
+  line-height:1;
+}
+
+/* show remove button when settings are open */
+body.settings-open .link-item{ position: relative; }
+body.settings-open .remove-shortcut{ display:flex; }
+
 /* small responsive adjustments */
 @media (max-width:720px){
-  .link-item{width:56px}
-  .center-time{font-size:44px}
-  :root{--icon-size:36px}
+  .center-time{font-size:40px}
+  .center-controls{bottom:110px}
+  #notes-container{display:none}
 }
