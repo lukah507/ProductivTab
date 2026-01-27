@@ -57,6 +57,7 @@ body{background-size:cover;background-position:center;background-repeat:no-repea
 
 /* link item */
 .link-item{
+  position: relative;
   display:flex;
   align-items:center;
   justify-content:center;
