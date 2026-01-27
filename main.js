@@ -1,4 +1,4 @@
-// main.js — consolidated text styling, movable notes, and UI wiring
+// main.js — updated to support separate text styling, movable notes, and new UI wiring
 (function(){
   'use strict';
 
@@ -9,7 +9,7 @@
         chrome.storage.sync.get(keys, resolve);
       } else {
         const result = {};
-        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k] = null; }});
+        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k]=null }});
         resolve(result);
       }
     });
@@ -30,7 +30,7 @@
         chrome.storage.local.get(keys, resolve);
       } else {
         const result = {};
-        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k] = null; }});
+        (Array.isArray(keys) ? keys : [keys]).forEach(k => { try { result[k] = JSON.parse(localStorage.getItem(k)); } catch(e){ result[k]=null }});
         resolve(result);
       }
     });
@@ -70,7 +70,6 @@
   const settingsBtn = document.getElementById('settings-button');
   const centerControls = document.getElementById('center-controls');
   const settingsDone = document.getElementById('settings-done');
-  const openTextStyleBtn = document.getElementById('open-text-style');
 
   const fontPickerModal = document.getElementById('font-picker-modal');
   const fontList = document.getElementById('font-list');
@@ -84,6 +83,7 @@
   const quoteBold = document.getElementById('quote-bold');
 
   const notesList = document.getElementById('notes-list');
+  const notesContainer = document.getElementById('notes-container');
   const addNoteFab = document.getElementById('add-note-fab');
 
   /* ---------- Defaults & state ---------- */
@@ -118,10 +118,8 @@
     colorOverride: DEFAULTS.colorOverride,
     textStyles: JSON.parse(JSON.stringify(DEFAULTS.textStyles)),
     bgCurrent: '',
-    notes: []
+    notes: [] // notes: [{id, color, text, x, y}]
   };
-
-  let currentTextTarget = null; // 'time' | 'date' | 'quote' or null
 
   /* ---------- Helpers ---------- */
   function qsa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
@@ -232,7 +230,7 @@
     }
   });
 
-  /* ---------- Time / Date / Quote text styling ---------- */
+  /* ---------- Time / Date / Quotes styling ---------- */
   function applyTextStyles() {
     if (timeEl && state.textStyles.time) {
       timeEl.style.color = state.textStyles.time.color || '';
@@ -281,13 +279,13 @@
     quoteEl && (quoteEl.textContent = (state.quotes && state.quotes.length) ? state.quotes[0] : '');
   });
 
-  /* ---------- Font list & Text Styling UI ---------- */
+  /* ---------- Font picker / text styling UI ---------- */
+  // Populate font list (keeps existing fonts list if present)
   const availableFonts = [
     { name: 'Inter (Default)', family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' },
     { name: 'Molle', family: 'Molle, cursive' },
     { name: 'Cossette', family: 'Cossette, serif' }
   ];
-
   function populateFontList() {
     if (!fontList) return;
     fontList.innerHTML = '';
@@ -301,30 +299,9 @@
       fontList.appendChild(btn);
     });
   }
-
-  // Open text styling modal for whole center text area (or for a specific target)
-  function openTextStyling(target) {
-    currentTextTarget = target || null;
-    // populate inputs with current textStyles
-    if (timeColorInput) timeColorInput.value = state.textStyles.time.color || '#000000';
-    if (dateColorInput) dateColorInput.value = state.textStyles.date.color || '#000000';
-    if (quoteColorInput) quoteColorInput.value = state.textStyles.quote.color || '#000000';
-    if (timeBold) timeBold.checked = !!state.textStyles.time.bold;
-    if (dateBold) dateBold.checked = !!state.textStyles.date.bold;
-    if (quoteBold) quoteBold.checked = !!state.textStyles.quote.bold;
-
-    if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','false');
-  }
-
-  if (openTextStyleBtn) openTextStyleBtn.addEventListener('click', () => openTextStyling(null));
-
-  // allow clicking on time/date/quote to open text styling for convenience
-  if (timeEl) timeEl.addEventListener('click', () => openTextStyling('time'));
-  if (dateEl) dateEl.addEventListener('click', () => openTextStyling('date'));
-  if (quoteEl) quoteEl.addEventListener('click', () => openTextStyling('quote'));
-
   if (fontApplyBtn) {
     fontApplyBtn.addEventListener('click', async () => {
+      // read inputs and persist
       state.textStyles.time.color = timeColorInput.value || '';
       state.textStyles.date.color = dateColorInput.value || '';
       state.textStyles.quote.color = quoteColorInput.value || '';
@@ -338,7 +315,7 @@
   }
   if (fontCancelBtn) fontCancelBtn.addEventListener('click', () => fontPickerModal && fontPickerModal.setAttribute('aria-hidden','true'));
 
-  /* ---------- Notes: movable sticky notes ---------- */
+  /* ---------- Notes: Movable notes with positions persisted ---------- */
   async function loadNotes() {
     const res = await storageLocalGet(['notes']);
     state.notes = res.notes || [];
@@ -348,13 +325,13 @@
   function createNoteElement(n) {
     const note = document.createElement('div');
     note.className = 'note color-' + (n.color || 'yellow');
-    note.style.left = (n.x != null ? n.x : 24) + 'px';
-    note.style.top = (n.y != null ? n.y : 140 + (state.notes.indexOf(n) * 20)) + 'px';
+    note.style.left = (n.x != null ? n.x : 20) + 'px';
+    note.style.top = (n.y != null ? n.y : 140) + 'px';
     note.dataset.id = n.id;
 
     const handle = document.createElement('div');
     handle.className = 'note-handle';
-    handle.textContent = '≡';
+    handle.textContent = '≡'; // simple drag handle
 
     const ta = document.createElement('textarea');
     ta.value = n.text || '';
@@ -390,9 +367,10 @@
     });
 
     row.appendChild(select); row.appendChild(del);
+
     note.appendChild(handle); note.appendChild(ta); note.appendChild(row);
 
-    // Dragging via pointer events
+    // Drag logic using pointer events on handle
     let dragging = false;
     let startX=0, startY=0, origX=0, origY=0;
     const onPointerMove = (ev) => {
@@ -410,10 +388,12 @@
       handle.releasePointerCapture(ev.pointerId);
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('pointerup', onPointerUp);
+      // persist position
       const id = note.dataset.id;
       const f = state.notes.find(x => x.id === id);
       if (f) { f.x = parseInt(note.style.left,10); f.y = parseInt(note.style.top,10); await saveNotes(); }
     };
+
     handle.addEventListener('pointerdown', (ev) => {
       ev.preventDefault();
       dragging = true;
@@ -430,7 +410,9 @@
 
   function renderNotes() {
     if (!notesList) return;
+    // clear existing
     notesList.innerHTML = '';
+    // add each note DOM element
     state.notes.forEach(n => {
       const el = createNoteElement(n);
       notesList.appendChild(el);
@@ -444,7 +426,7 @@
     renderNotes();
   });
 
-  /* ---------- Icon/link color apply ---------- */
+  /* ---------- Color apply for icons (persist colorOverride separately) ---------- */
   colorApplyBtn && colorApplyBtn.addEventListener('click', async () => {
     const val = (colorInput && colorInput.value) ? colorInput.value.trim() : '';
     if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
@@ -471,8 +453,10 @@
     state.bgCurrent = localRes.bgCurrent || state.bgCurrent;
     state.notes = localRes.notes || state.notes;
 
+    // apply background if present
     if (state.bgCurrent) document.body.style.backgroundImage = `url(${state.bgCurrent})`;
 
+    // set UI values
     if (colorInput && state.colorOverride) colorInput.value = state.colorOverride;
     if (timeColorInput && state.textStyles.time) timeColorInput.value = state.textStyles.time.color || '#000000';
     if (dateColorInput && state.textStyles.date) dateColorInput.value = state.textStyles.date.color || '#000000';
@@ -481,7 +465,6 @@
     if (dateBold) dateBold.checked = !!state.textStyles.date.bold;
     if (quoteBold) quoteBold.checked = !!state.textStyles.quote.bold;
 
-    populateFontList();
     renderBars();
     await loadNotes();
     renderNotes();
@@ -490,7 +473,7 @@
     applyTextStyles();
   }
 
-  /* ---------- Settings toggle wiring (also available in ui-enhancements.js) ---------- */
+  /* ---------- UI Wiring: settings toggle & done & font modal open ---------- */
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
       const open = document.body.classList.toggle('settings-open');
@@ -506,11 +489,28 @@
     });
   }
 
+  // open font picker via a dedicated UI element - you can add a button elsewhere; reusing existing font picker trigger
+  // For convenience: open font picker when user double-clicks the center quote (example)
+  if (fontList) populateFontList();
+  function populateFontList(){ /* kept intentionally lightweight - font buttons wired earlier */ }
+
+  // add a simple opener to font picker via a longpress on the quote or through developer tools:
+  // (keep it explicit — add a UI button if you'd like)
+  // We'll wire opening the font-picker modal to a keyboard shortcut: press 't' while holding Shift to open the text styling modal
+  window.addEventListener('keydown', (ev) => {
+    if (ev.shiftKey && ev.key.toLowerCase() === 't') {
+      if (fontPickerModal) { fontPickerModal.setAttribute('aria-hidden','false'); }
+    }
+  });
+
+  // Also expose a quick open function
+  window.openTextStyling = function(){ if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','false'); };
+
   /* ---------- Init ---------- */
-  async function init() { await loadInitialState(); }
+  async function init(){ await loadInitialState(); }
   init();
 
-  // debug
+  // Expose debug
   window.__customNewTab = { state, renderBars, applyColorToBars, openTextStyling };
 
 })();

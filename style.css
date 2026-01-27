@@ -64,11 +64,11 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 .center-time{font-size:54px;font-weight:600;margin-top:8px;pointer-events:auto}
 .center-quote{font-size:16px;margin-top:8px;opacity:0.95;pointer-events:auto}
 
-/* center-controls (positioned lower-left, closer to settings button) */
+/* center-controls moved to lower-left and placed above bottom icons and near settings */
 .center-controls{
   position: fixed;
-  left: 20px;
-  bottom: 96px;      /* moved closer to bottom; adjust if needed */
+  left: 20px;            /* align near settings button */
+  bottom: 76px;         /* sits above bottom icon area and above settings button */
   transform: none;
   display:flex;
   gap:8px;
@@ -151,10 +151,10 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 body.settings-open .link-item{ position: relative; }
 body.settings-open .remove-shortcut{ display:flex; }
 
-/* floating add-note button (above settings button) */
+/* floating add-note button (above settings on lower-left) */
 .fab{
   position: fixed;
-  bottom: 60px;  /* directly above settings button (which sits at bottom:20px) */
+  bottom: 84px;  /* sits above settings button which is at bottom:20px; toggle if you change settings position */
   left: 20px;
   z-index: 95;
   width:44px;

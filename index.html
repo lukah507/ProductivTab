@@ -26,7 +26,7 @@
       <div id="quote" class="center-quote" aria-live="polite"></div>
     </main>
 
-    <!-- Settings / controls (moved near settings button) -->
+    <!-- Settings / controls (moved to lower-left near settings button) -->
     <div id="center-controls" class="center-controls hidden" aria-hidden="true">
       <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
       <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
@@ -34,17 +34,14 @@
       <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
       <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
 
-      <!-- Text styling modal opener -->
-      <button id="open-text-style" class="mini-btn">Text Style</button>
-
-      <!-- Color picker for icons/shortcuts (independent from center text) -->
-      <input id="color-input" type="color" class="color-input" title="Pick icon/link color">
+      <!-- Color picker for icon/text color (keeps icons and center text separate) -->
+      <input id="color-input" type="color" class="color-input" title="Pick a color">
       <button id="color-apply" class="mini-btn">Apply Color</button>
 
       <button id="settings-done" class="mini-btn">Done</button>
     </div>
 
-    <!-- Notes area (moved to left side) -->
+    <!-- Notes area (moved to left side). The floating + button is separate and sits above settings -->
     <div id="notes-container" aria-live="polite">
       <div id="notes-list"></div>
     </div>
@@ -69,7 +66,7 @@
   <!-- Settings button (lower-left) -->
   <button id="settings-button" aria-label="Settings">⚙</button>
 
-  <!-- Font / Text styling modal -->
+  <!-- Font picker modal (now enhanced with text color / bold controls for time/date/quote) -->
   <div id="font-picker-modal" class="modal" aria-hidden="true">
     <div class="modal-content" id="font-picker-content">
       <h3>Text Styling</h3>
