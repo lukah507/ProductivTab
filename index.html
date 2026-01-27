@@ -24,6 +24,23 @@
       <div id="date" class="center-date" aria-live="polite"></div>
       <div id="time" class="center-time" aria-live="polite"></div>
       <div id="quote" class="center-quote" aria-live="polite"></div>
+
+      <!-- Settings / controls (positioned above bottom bar via CSS) -->
+      <div id="center-controls" class="center-controls hidden" aria-hidden="true">
+        <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
+        <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
+
+        <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
+        <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
+
+        <!-- Gallery / Manage removed per request -->
+
+        <!-- Native color picker to avoid manual hex input -->
+        <input id="color-input" type="color" class="color-input" title="Pick a color">
+        <button id="color-apply" class="mini-btn">Apply Color</button>
+
+        <button id="settings-done" class="mini-btn">Done</button>
+      </div>
     </main>
 
     <!-- Sticky notes area -->
@@ -39,21 +56,6 @@
       <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
       <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
       <button id="bottom-add-btn" class="mini-btn hidden-until-settings" title="Add bottom link">+ Add</button>
-    </div>
-
-    <!-- Settings / controls (positioned fixed bottom-center above bottom bar) -->
-    <div id="center-controls" class="center-controls hidden" aria-hidden="true">
-      <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
-      <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
-
-      <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
-      <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
-
-      <!-- Native color picker (no hex input) -->
-      <input id="color-input" type="color" class="color-input" title="Pick a color">
-      <button id="color-apply" class="mini-btn">Apply Color</button>
-
-      <button id="settings-done" class="mini-btn">Done</button>
     </div>
 
   </div>

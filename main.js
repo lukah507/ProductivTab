@@ -1,7 +1,7 @@
 // main.js - Manifest V3 compatible new-tab logic using chrome.storage
 // Features implemented:
 // - top/bottom bars (add/remove links, favicon), right-click removal
-// - background upload (gallery management removed per request)
+// - background upload and gallery (stored in chrome.storage.local as data URLs)
 // - on-load random background selection, and overlay color selection via pixel sampling
 // - custom icon/text color override (sync setting), used for icons/text and overlay derivation
 // - center date/time (12/24 toggle), quotes (editable list saved to storage)
@@ -49,6 +49,9 @@
   const closeModalBtn = document.getElementById('close-modal');
 
   const bgUpload = document.getElementById('bg-upload');
+  // Gallery buttons removed per user request
+  const bgAddToSlideshowBtn = null; // disabled
+  const bgManageBtn = null; // disabled
 
   const colorInput = document.getElementById('color-input');
   const colorApplyBtn = document.getElementById('color-apply');
@@ -108,7 +111,7 @@
     a.href = link.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    // apply color override to text if present
+    // apply color override to link text only
     if (state.colorOverride) a.style.color = state.colorOverride;
 
     const icon = document.createElement('span');
@@ -120,7 +123,7 @@
       img.alt = '';
       icon.appendChild(img);
     } else {
-      // Letter icon: apply color to text only (background is transparent)
+      // Letter icon - use text color for the letter
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
       if (state.colorOverride) icon.style.color = state.colorOverride;
     }
@@ -147,18 +150,6 @@
     a.appendChild(icon);
     a.appendChild(label);
 
-    // Add remove (×) button
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'remove-shortcut';
-    removeBtn.textContent = '×';
-    removeBtn.title = 'Remove shortcut';
-    removeBtn.addEventListener('click', (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      removeLink(link);
-    });
-    a.appendChild(removeBtn);
-
     // right-click remove (legacy option)
     a.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
@@ -180,17 +171,19 @@
 
   function applyColorToBars(){
     qsa('.link-item').forEach(a => {
-      // Apply color to link text
+      // Apply color only to link text
       a.style.color = state.colorOverride || '';
       const icon = a.querySelector('.icon');
       if (icon && state.colorOverride) {
-        // Only apply color to letter icons (not favicons)
-        const hasImage = icon.querySelector('img');
-        if (!hasImage) {
-          // Letter icon: apply text color only
+        // For letter icons (no img), apply color to text only, NOT background
+        const hasImg = icon.querySelector('img');
+        if (!hasImg) {
           icon.style.color = state.colorOverride;
+          icon.style.background = 'transparent';
         }
-        // Do NOT change icon background (it's transparent)
+      } else if (icon) {
+        icon.style.background = '';
+        icon.style.color = '';
       }
     });
   }
@@ -264,7 +257,8 @@
     alert('Uploaded ' + files.length + ' image(s).');
   });
 
-  // Gallery management removed per user request
+  // Gallery add/manage buttons removed per user request
+  // bgAddToSlideshowBtn and bgManageBtn handlers disabled
 
   function pickRandomBackgroundOnLoad() {
     if (state.bgList && state.bgList.length) {
@@ -418,7 +412,7 @@
       state.colorOverride = '';
       await storageSyncSet({ colorOverride: '' });
     } else {
-      // Native color input always returns #rrggbb format
+      // color input gives us a hex value directly
       state.colorOverride = val;
       await storageSyncSet({ colorOverride: state.colorOverride });
     }
@@ -554,6 +548,17 @@
 
     // handle window resize
     window.addEventListener('resize', updateBarOverlaysBasedOnBackground);
+  }
+
+  // delegate: set background and save to local
+  function setBodyBackground(dataUrl) {
+    if (dataUrl) {
+      document.body.style.backgroundImage = `url(${dataUrl})`;
+      state.bgCurrent = dataUrl;
+      storageLocalSet({ bgCurrent: state.bgCurrent }).then(() => updateBarOverlaysBasedOnBackground());
+    } else {
+      document.body.style.backgroundImage = '';
+    }
   }
 
   // expose a small API for debugging in console (optional)
