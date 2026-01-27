@@ -1,0 +1,26 @@
+/* fonts.css - load the fonts that live in the fonts/ folder at the repo root */
+
+@font-face {
+  font-family: "Molle";
+  src: url("fonts/Molle-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "CossetteTexte";
+  src: url("fonts/CossetteTexte-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MomoTrustDisplay";
+  src: url("fonts/MomoTrustDisplay-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* utility to preview font name */
+.font-preview { font-size: 16px; padding:8px 6px; border-radius:6px; cursor:pointer; }
