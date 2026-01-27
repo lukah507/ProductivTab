@@ -49,8 +49,9 @@
   const closeModalBtn = document.getElementById('close-modal');
 
   const bgUpload = document.getElementById('bg-upload');
-  const bgAddToSlideshowBtn = document.getElementById('bg-add-to-slideshow');
-  const bgManageBtn = document.getElementById('bg-manage');
+  // Gallery buttons removed per user request
+  const bgAddToSlideshowBtn = null; // disabled
+  const bgManageBtn = null; // disabled
 
   const colorInput = document.getElementById('color-input');
   const colorApplyBtn = document.getElementById('color-apply');
@@ -110,7 +111,7 @@
     a.href = link.url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    // apply color override if present
+    // apply color override to link text only
     if (state.colorOverride) a.style.color = state.colorOverride;
 
     const icon = document.createElement('span');
@@ -122,8 +123,9 @@
       img.alt = '';
       icon.appendChild(img);
     } else {
+      // Letter icon - use text color for the letter
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
-      if (state.colorOverride) icon.style.background = state.colorOverride;
+      if (state.colorOverride) icon.style.color = state.colorOverride;
     }
 
     const label = document.createElement('div');
@@ -131,10 +133,24 @@
     label.textContent = link.title || link.url;
     label.style.fontSize = '12px';
 
+    // Add remove button (visible only when settings are open via CSS)
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-shortcut';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove shortcut';
+    removeBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (confirm('Remove "' + (link.title||link.url) + '"?')) {
+        removeLink(link);
+      }
+    });
+
+    a.appendChild(removeBtn);
     a.appendChild(icon);
     a.appendChild(label);
 
-    // right-click remove
+    // right-click remove (legacy option)
     a.addEventListener('contextmenu', (ev) => {
       ev.preventDefault();
       if (confirm('Remove "' + (link.title||link.url) + '"?')) {
@@ -155,12 +171,16 @@
 
   function applyColorToBars(){
     qsa('.link-item').forEach(a => {
+      // Apply color only to link text
       a.style.color = state.colorOverride || '';
       const icon = a.querySelector('.icon');
       if (icon && state.colorOverride) {
-        // make icon background the override color for visibility
-        icon.style.background = state.colorOverride;
-        icon.style.color = '#fff';
+        // For letter icons (no img), apply color to text only, NOT background
+        const hasImg = icon.querySelector('img');
+        if (!hasImg) {
+          icon.style.color = state.colorOverride;
+          icon.style.background = 'transparent';
+        }
       } else if (icon) {
         icon.style.background = '';
         icon.style.color = '';
@@ -237,30 +257,8 @@
     alert('Uploaded ' + files.length + ' image(s).');
   });
 
-  bgAddToSlideshowBtn.addEventListener('click', async () => {
-    if (!state.bgCurrent) { alert('No current background to add.'); return; }
-    state.bgList.push(state.bgCurrent);
-    await saveBackgroundsToLocal();
-    alert('Added current background to gallery.');
-  });
-
-  bgManageBtn.addEventListener('click', async () => {
-    const opt = prompt('Manage backgrounds:\n1) Count\n2) Clear gallery\n3) Pick random from gallery\nEnter option number');
-    if (!opt) return;
-    if (opt === '1') alert('Gallery count: ' + state.bgList.length);
-    else if (opt === '2') {
-      if (confirm('Clear gallery?')) {
-        state.bgList = [];
-        await saveBackgroundsToLocal();
-        alert('Gallery cleared.');
-      }
-    } else if (opt === '3') {
-      if (state.bgList.length) {
-        const r = state.bgList[Math.floor(Math.random()*state.bgList.length)];
-        setBodyBackground(r);
-      } else alert('Gallery empty.');
-    }
-  });
+  // Gallery add/manage buttons removed per user request
+  // bgAddToSlideshowBtn and bgManageBtn handlers disabled
 
   function pickRandomBackgroundOnLoad() {
     if (state.bgList && state.bgList.length) {
@@ -414,9 +412,8 @@
       state.colorOverride = '';
       await storageSyncSet({ colorOverride: '' });
     } else {
-      const m = val.match(/^#?[0-9a-fA-F]{6}$/);
-      if (!m) { alert('Enter a hex color like #336699'); return; }
-      state.colorOverride = (val[0]==='#') ? val : ('#' + val);
+      // color input gives us a hex value directly
+      state.colorOverride = val;
       await storageSyncSet({ colorOverride: state.colorOverride });
     }
     applyColorToBars();

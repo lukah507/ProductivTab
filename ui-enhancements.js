@@ -18,6 +18,7 @@
   /* ---------- Settings toggle ---------- */
   const settingsBtn = document.getElementById('settings-button');
   const centerControls = document.getElementById('center-controls');
+  const settingsDoneBtn = document.getElementById('settings-done');
   const colorInput = document.getElementById('color-input');
 
   let settingsOpen = false;
@@ -26,22 +27,33 @@
     settingsBtn.addEventListener('click', () => {
       settingsOpen = !settingsOpen;
       if (settingsOpen) {
+        document.body.classList.add('settings-open');
         centerControls.classList.remove('hidden');
         settingsBtn.classList.add('active');
       } else {
+        document.body.classList.remove('settings-open');
         centerControls.classList.add('hidden');
         settingsBtn.classList.remove('active');
       }
     });
+
+    // Done button to close settings
+    if (settingsDoneBtn) {
+      settingsDoneBtn.addEventListener('click', () => {
+        settingsOpen = false;
+        document.body.classList.remove('settings-open');
+        centerControls.classList.add('hidden');
+        settingsBtn.classList.remove('active');
+      });
+    }
 
     // Update settings button background when color is applied
     const colorApplyBtn = document.getElementById('color-apply');
     if (colorApplyBtn) {
       colorApplyBtn.addEventListener('click', async () => {
         const val = (colorInput.value || '').trim();
-        if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
-          const color = (val[0] === '#') ? val : ('#' + val);
-          settingsBtn.style.setProperty('--accent-color', color);
+        if (val) {
+          settingsBtn.style.setProperty('--accent-color', val);
         }
       });
     }
