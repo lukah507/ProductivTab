@@ -1,13 +1,13 @@
 /* Settings button (lower-left) */
 #settings-button {
   position: fixed;
-  bottom: 20px;
+  bottom: 60px;
   left: 20px;
   width: 48px;
   height: 48px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--accent-color, rgba(0, 0, 0, 0.45)); /* always respect accent color var if set */
   color: #fff;
   font-size: 24px;
   cursor: pointer;
@@ -20,7 +20,7 @@
 }
 
 #settings-button:hover {
-  background: rgba(0, 0, 0, 0.65);
+  filter:brightness(0.9);
   transform: scale(1.05);
 }
 

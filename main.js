@@ -1,4 +1,4 @@
-// main.js — updated to support separate text styling, movable notes, and new UI wiring
+// main.js — updated to support UI improvements (fab color, larger labels, hi-res favicons)
 (function(){
   'use strict';
 
@@ -69,7 +69,6 @@
 
   const settingsBtn = document.getElementById('settings-button');
   const centerControls = document.getElementById('center-controls');
-  const settingsDone = document.getElementById('settings-done');
 
   const fontPickerModal = document.getElementById('font-picker-modal');
   const fontList = document.getElementById('font-list');
@@ -84,7 +83,7 @@
 
   const notesList = document.getElementById('notes-list');
   const notesContainer = document.getElementById('notes-container');
-  const addNoteFab = document.getElementById('add-note-fab');
+  let addNoteFab = null;
 
   /* ---------- Defaults & state ---------- */
   const DEFAULTS = {
@@ -118,15 +117,19 @@
     colorOverride: DEFAULTS.colorOverride,
     textStyles: JSON.parse(JSON.stringify(DEFAULTS.textStyles)),
     bgCurrent: '',
-    notes: [] // notes: [{id, color, text, x, y}]
+    notes: []
   };
 
   /* ---------- Helpers ---------- */
   function qsa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
   function uid(){ return Math.random().toString(36).slice(2,9); }
+
+  // Return a high-resolution favicon URL (requests size=128)
   function faviconForUrl(url){
-    try { const u = new URL(url); return 'https://s2.googleusercontent.com/s2/favicons?domain=' + u.hostname; }
-    catch(e) { return ''; }
+    try {
+      const u = new URL(url);
+      return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=128`;
+    } catch(e) { return ''; }
   }
 
   /* ---------- Render links / bars ---------- */
@@ -142,14 +145,18 @@
     icon.className = 'icon';
     const fav = faviconForUrl(link.url);
     if (fav) {
-      const img = document.createElement('img'); img.src = fav; img.alt = '';
+      const img = document.createElement('img');
+      img.alt = '';
+      // request higher-resolution favicon; set it and rely on ui-enhancements to further improve if available
+      img.src = fav;
       icon.appendChild(img);
+      try { if (window.enhanceFaviconImage) window.enhanceFaviconImage(img, link.url); } catch(e){}
     } else {
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
       if (state.colorOverride) icon.style.color = state.colorOverride;
     }
 
-    const label = document.createElement('div'); label.className = 'label'; label.textContent = link.title || link.url; label.style.fontSize='12px';
+    const label = document.createElement('div'); label.className = 'label'; label.textContent = link.title || link.url;
 
     const removeBtn = document.createElement('button');
     removeBtn.className = 'remove-shortcut';
@@ -192,9 +199,11 @@
         icon.style.background = '';
       }
     });
-    if (settingsBtn) {
-      if (state.colorOverride) { settingsBtn.style.setProperty('--accent-color', state.colorOverride); settingsBtn.classList.add('active'); }
-      else { settingsBtn.classList.remove('active'); settingsBtn.style.removeProperty('--accent-color'); }
+
+    // Set accent color on :root so all components using --accent-color update
+    if (typeof document !== 'undefined' && document.documentElement) {
+      if (state.colorOverride) document.documentElement.style.setProperty('--accent-color', state.colorOverride);
+      else document.documentElement.style.removeProperty('--accent-color');
     }
   }
 
@@ -224,6 +233,7 @@
       r.onload = async (e) => {
         state.bgCurrent = e.target.result;
         await storageLocalSet({ bgCurrent: state.bgCurrent });
+        // set the CSS background on body, cover + centered handled by CSS
         document.body.style.backgroundImage = `url(${state.bgCurrent})`;
       };
       r.readAsDataURL(f);
@@ -280,7 +290,6 @@
   });
 
   /* ---------- Font picker / text styling UI ---------- */
-  // Populate font list (keeps existing fonts list if present)
   const availableFonts = [
     { name: 'Inter (Default)', family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' },
     { name: 'Molle', family: 'Molle, cursive' },
@@ -301,7 +310,6 @@
   }
   if (fontApplyBtn) {
     fontApplyBtn.addEventListener('click', async () => {
-      // read inputs and persist
       state.textStyles.time.color = timeColorInput.value || '';
       state.textStyles.date.color = dateColorInput.value || '';
       state.textStyles.quote.color = quoteColorInput.value || '';
@@ -331,9 +339,11 @@
 
     const handle = document.createElement('div');
     handle.className = 'note-handle';
-    handle.textContent = '≡'; // simple drag handle
+    handle.textContent = '≡';
 
     const ta = document.createElement('textarea');
+    ta.id = 'note-text-' + n.id;
+    ta.name = 'note-text-' + n.id;
     ta.value = n.text || '';
     ta.placeholder = 'Note...';
     ta.addEventListener('input', () => {
@@ -356,6 +366,8 @@
     });
 
     const select = document.createElement('select');
+    select.id = 'note-color-' + n.id;
+    select.name = 'note-color-' + n.id;
     ['yellow','pink','blue'].forEach(c => {
       const opt = document.createElement('option'); opt.value = c; opt.text = c;
       if (c === n.color) opt.selected = true;
@@ -388,7 +400,6 @@
       handle.releasePointerCapture(ev.pointerId);
       document.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('pointerup', onPointerUp);
-      // persist position
       const id = note.dataset.id;
       const f = state.notes.find(x => x.id === id);
       if (f) { f.x = parseInt(note.style.left,10); f.y = parseInt(note.style.top,10); await saveNotes(); }
@@ -410,32 +421,28 @@
 
   function renderNotes() {
     if (!notesList) return;
-    // clear existing
     notesList.innerHTML = '';
-    // add each note DOM element
     state.notes.forEach(n => {
       const el = createNoteElement(n);
       notesList.appendChild(el);
     });
   }
 
-  addNoteFab && addNoteFab.addEventListener('click', async () => {
-    const newNote = { id: uid(), color: 'yellow', text: '', x: 24, y: 140 + (state.notes.length * 20) };
-    state.notes.push(newNote);
-    await saveNotes();
-    renderNotes();
-  });
-
   /* ---------- Color apply for icons (persist colorOverride separately) ---------- */
   colorApplyBtn && colorApplyBtn.addEventListener('click', async () => {
-    const val = (colorInput && colorInput.value) ? colorInput.value.trim() : '';
+    let val = (colorInput && colorInput.value) ? colorInput.value.trim() : '';
+    if (!val) {
+      val = prompt('Enter HEX color (e.g. #336699)', '#336699') || '';
+    }
     if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
       const color = (val[0] === '#') ? val : ('#' + val);
       state.colorOverride = color;
       await storageSyncSet({ colorOverride: state.colorOverride });
+      // set root CSS var so FAB and settings-button reflect it
+      document.documentElement.style.setProperty('--accent-color', state.colorOverride);
       applyColorToBars();
     } else {
-      alert('Please pick a color.');
+      alert('Please pick a valid 6-digit HEX color.');
     }
   });
 
@@ -456,8 +463,13 @@
     // apply background if present
     if (state.bgCurrent) document.body.style.backgroundImage = `url(${state.bgCurrent})`;
 
+    // apply accent color to root so elements reflect it immediately
+    if (state.colorOverride) {
+      document.documentElement.style.setProperty('--accent-color', state.colorOverride);
+      if (colorInput) colorInput.value = state.colorOverride;
+    }
+
     // set UI values
-    if (colorInput && state.colorOverride) colorInput.value = state.colorOverride;
     if (timeColorInput && state.textStyles.time) timeColorInput.value = state.textStyles.time.color || '#000000';
     if (dateColorInput && state.textStyles.date) dateColorInput.value = state.textStyles.date.color || '#000000';
     if (quoteColorInput && state.textStyles.quote) quoteColorInput.value = state.textStyles.quote.color || '#000000';
@@ -471,9 +483,14 @@
 
     updateTime();
     applyTextStyles();
+
+    // ensure initial quote is displayed
+    if (quoteEl) {
+      quoteEl.textContent = (state.quotes && state.quotes.length) ? state.quotes[0] : '';
+    }
   }
 
-  /* ---------- UI Wiring: settings toggle & done & font modal open ---------- */
+  /* ---------- UI Wiring: settings toggle & font modal open ---------- */
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
       const open = document.body.classList.toggle('settings-open');
@@ -481,33 +498,42 @@
       settingsBtn.classList.toggle('active', open);
     });
   }
-  if (settingsDone) {
-    settingsDone.addEventListener('click', () => {
-      document.body.classList.remove('settings-open');
-      if (centerControls) centerControls.classList.add('hidden');
-      if (settingsBtn) settingsBtn.classList.remove('active');
-    });
-  }
 
-  // open font picker via a dedicated UI element - you can add a button elsewhere; reusing existing font picker trigger
-  // For convenience: open font picker when user double-clicks the center quote (example)
+  if (topAddBtn) topAddBtn.addEventListener('click', () => addLinkPrompt('top'));
+  if (bottomAddBtn) bottomAddBtn.addEventListener('click', () => addLinkPrompt('bottom'));
+
   if (fontList) populateFontList();
-  function populateFontList(){ /* kept intentionally lightweight - font buttons wired earlier */ }
+  function populateFontList(){}
 
-  // add a simple opener to font picker via a longpress on the quote or through developer tools:
-  // (keep it explicit — add a UI button if you'd like)
-  // We'll wire opening the font-picker modal to a keyboard shortcut: press 't' while holding Shift to open the text styling modal
   window.addEventListener('keydown', (ev) => {
     if (ev.shiftKey && ev.key.toLowerCase() === 't') {
-      if (fontPickerModal) { fontPickerModal.setAttribute('aria-hidden','false'); }
+      if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','false');
     }
   });
 
-  // Also expose a quick open function
   window.openTextStyling = function(){ if (fontPickerModal) fontPickerModal.setAttribute('aria-hidden','false'); };
 
   /* ---------- Init ---------- */
-  async function init(){ await loadInitialState(); }
+  async function init(){
+    await loadInitialState();
+
+    // Wire FAB after DOM ready
+    addNoteFab = document.getElementById('add-note-fab');
+    if (addNoteFab) {
+      // refresh element to clear prior handlers (if any)
+      addNoteFab.replaceWith(addNoteFab.cloneNode(true));
+      addNoteFab = document.getElementById('add-note-fab');
+      // ensure FAB uses accent color root var
+      addNoteFab.style.background = 'var(--accent-color, rgba(0,0,0,0.45))';
+      addNoteFab.style.color = '#fff';
+      addNoteFab.addEventListener('click', async () => {
+        const newNote = { id: uid(), color: 'yellow', text: '', x: 24, y: 140 + (state.notes.length * 20) };
+        state.notes.push(newNote);
+        await saveNotes();
+        renderNotes();
+      });
+    }
+  }
   init();
 
   // Expose debug
