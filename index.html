@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Custom New Tab</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="root">
+
+    <!-- Top bar wrapper (slightly larger hidden overlay area + visible bar) -->
+    <div id="top-bar-wrap" class="bar-wrap">
+      <div id="top-bar-overlay" class="bar-overlay" title="Top overlay area"></div>
+      <div id="top-bar" class="link-bar" aria-label="Top bookmarks bar"></div>
+      <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
+    </div>
+
+    <!-- Center stack -->
+    <main id="center-stack">
+      <div id="date" class="center-date" aria-live="polite"></div>
+      <div id="time" class="center-time" aria-live="polite"></div>
+      <div id="quote" class="center-quote" aria-live="polite"></div>
+
+      <div id="center-controls" class="center-controls">
+        <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
+        <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
+
+        <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
+        <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
+
+        <button id="bg-add-to-slideshow" class="mini-btn">Add to gallery</button>
+        <button id="bg-manage" class="mini-btn">Manage BG</button>
+
+        <input id="color-input" class="hex-input" placeholder="#..." maxlength="7" title="Enter hex color e.g. #336699">
+        <button id="color-apply" class="mini-btn">Apply Color</button>
+      </div>
+    </main>
+
+    <!-- Sticky notes area -->
+    <aside id="notes-container">
+      <div id="notes-controls">
+        <button id="add-note-btn" class="mini-btn">+ Note</button>
+      </div>
+      <div id="notes-list"></div>
+    </aside>
+
+    <!-- Bottom bar wrapper -->
+    <div id="bottom-bar-wrap" class="bar-wrap">
+      <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
+      <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
+      <button id="bottom-add-btn" class="mini-btn" title="Add bottom link">+ Add</button>
+    </div>
+
+  </div>
+
+  <!-- Quotes modal -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <h3>Edit quotes (one per line)</h3>
+      <textarea id="quotes-textarea" rows="8" style="width:100%"></textarea>
+      <div class="modal-actions">
+        <button id="save-quotes" class="mini-btn">Save</button>
+        <button id="close-modal" class="mini-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
