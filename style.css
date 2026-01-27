@@ -72,7 +72,36 @@ body{background-size:cover;background-position:center;background-repeat:no-repea
 }
 .link-item:hover{background:rgba(255,255,255,0.06)}
 
-/* icon circle - TRANSPARENT background per request */
+/* Remove shortcut button - hidden by default, shown when settings open */
+.remove-shortcut {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 0, 0, 0.85);
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  line-height: 1;
+  padding: 0;
+}
+body.settings-open .remove-shortcut {
+  display: flex;
+}
+.remove-shortcut:hover {
+  background: rgba(255, 0, 0, 1);
+  transform: scale(1.1);
+}
+
+/* icon circle */
 .icon{
   position: relative;
   width:var(--icon-size);
@@ -173,6 +202,13 @@ body.settings-open #bottom-add-btn {
   border-radius: 6px;
   cursor: pointer;
   background: transparent;
+/* color picker input */
+.color-input{
+  width: 50px;
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 /* notes */

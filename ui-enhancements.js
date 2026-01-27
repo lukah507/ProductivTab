@@ -18,6 +18,7 @@
   /* ---------- Settings toggle with body class ---------- */
   const settingsBtn = document.getElementById('settings-button');
   const centerControls = document.getElementById('center-controls');
+  const settingsDoneBtn = document.getElementById('settings-done');
   const colorInput = document.getElementById('color-input');
   const settingsDoneBtn = document.getElementById('settings-done');
 
@@ -28,12 +29,14 @@
       settingsOpen = !settingsOpen;
       if (settingsOpen) {
         // Show settings
+        document.body.classList.add('settings-open');
         centerControls.classList.remove('hidden');
         centerControls.setAttribute('aria-hidden', 'false');
         settingsBtn.classList.add('active');
         document.body.classList.add('settings-open');
       } else {
         // Hide settings
+        document.body.classList.remove('settings-open');
         centerControls.classList.add('hidden');
         centerControls.setAttribute('aria-hidden', 'true');
         settingsBtn.classList.remove('active');
@@ -49,6 +52,13 @@
         centerControls.setAttribute('aria-hidden', 'true');
         settingsBtn.classList.remove('active');
         document.body.classList.remove('settings-open');
+    // Done button to close settings
+    if (settingsDoneBtn) {
+      settingsDoneBtn.addEventListener('click', () => {
+        settingsOpen = false;
+        document.body.classList.remove('settings-open');
+        centerControls.classList.add('hidden');
+        settingsBtn.classList.remove('active');
       });
     }
 

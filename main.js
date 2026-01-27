@@ -130,6 +130,20 @@
     label.textContent = link.title || link.url;
     label.style.fontSize = '12px';
 
+    // Add remove button (visible only when settings are open via CSS)
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-shortcut';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove shortcut';
+    removeBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (confirm('Remove "' + (link.title||link.url) + '"?')) {
+        removeLink(link);
+      }
+    });
+
+    a.appendChild(removeBtn);
     a.appendChild(icon);
     a.appendChild(label);
 
