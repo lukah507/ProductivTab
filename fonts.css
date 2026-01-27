@@ -1,0 +1,25 @@
+/* Font-face declarations for custom fonts */
+
+@font-face {
+  font-family: 'Molle';
+  src: url('/fonts/Molle-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cossette';
+  src: url('/fonts/CossetteTexte-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MomoTrust';
+  src: url('/fonts/MomoTrustDisplay-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

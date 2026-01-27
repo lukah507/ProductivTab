@@ -561,17 +561,6 @@
     window.addEventListener('resize', updateBarOverlaysBasedOnBackground);
   }
 
-  // delegate: set background and save to local
-  function setBodyBackground(dataUrl) {
-    if (dataUrl) {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
-      state.bgCurrent = dataUrl;
-      storageLocalSet({ bgCurrent: state.bgCurrent }).then(() => updateBarOverlaysBasedOnBackground());
-    } else {
-      document.body.style.backgroundImage = '';
-    }
-  }
-
   // expose a small API for debugging in console (optional)
   window.__customNewTab = {
     state,
