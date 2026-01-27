@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Custom New Tab</title>
+  <title>ProductivTab — Custom New Tab</title>
 
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="fonts.css">
@@ -12,47 +12,50 @@
 <body>
   <div id="root">
 
-    <!-- Top bar wrapper (slightly larger hidden overlay area + visible bar) -->
+    <!-- Top bar wrapper (overlay + visible bar) -->
     <div id="top-bar-wrap" class="bar-wrap">
       <div id="top-bar-overlay" class="bar-overlay" title="Top overlay area"></div>
       <div id="top-bar" class="link-bar" aria-label="Top bookmarks bar"></div>
-      <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
+      <button id="top-add-btn" class="mini-btn hidden-until-settings" title="Add top link">+ Add</button>
     </div>
 
-    <!-- Center stack -->
+    <!-- Center stack (date / time / quote) -->
     <main id="center-stack">
       <div id="date" class="center-date" aria-live="polite"></div>
       <div id="time" class="center-time" aria-live="polite"></div>
       <div id="quote" class="center-quote" aria-live="polite"></div>
 
-      <div id="center-controls" class="center-controls hidden">
+      <!-- Settings / controls (positioned above bottom bar via CSS) -->
+      <div id="center-controls" class="center-controls hidden" aria-hidden="true">
         <button id="clock-toggle" class="mini-btn">Toggle 12/24</button>
         <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
 
         <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
         <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
 
-        <button id="bg-add-to-slideshow" class="mini-btn">Add to gallery</button>
-        <button id="bg-manage" class="mini-btn">Manage BG</button>
+        <!-- Gallery / Manage removed per request -->
 
-        <input id="color-input" class="hex-input" placeholder="#..." maxlength="7" title="Enter hex color e.g. #336699">
+        <!-- Native color picker to avoid manual hex input -->
+        <input id="color-input" type="color" class="color-input" title="Pick a color">
         <button id="color-apply" class="mini-btn">Apply Color</button>
+
+        <button id="settings-done" class="mini-btn">Done</button>
       </div>
     </main>
 
     <!-- Sticky notes area -->
-    <aside id="notes-container">
-      <div id="notes-controls">
-        <button id="add-note-btn" class="mini-btn">+ Note</button>
-      </div>
+    <div id="notes-container">
       <div id="notes-list"></div>
-    </aside>
+      <div style="margin-top:8px; text-align:right;">
+        <button id="add-note-btn" class="mini-btn">+ Add Note</button>
+      </div>
+    </div>
 
     <!-- Bottom bar wrapper -->
     <div id="bottom-bar-wrap" class="bar-wrap">
       <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
       <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
-      <button id="bottom-add-btn" class="mini-btn" title="Add bottom link">+ Add</button>
+      <button id="bottom-add-btn" class="mini-btn hidden-until-settings" title="Add bottom link">+ Add</button>
     </div>
 
   </div>
@@ -60,8 +63,8 @@
   <!-- Quotes modal -->
   <div id="modal" class="modal" aria-hidden="true">
     <div class="modal-content">
-      <h3>Edit quotes (one per line)</h3>
-      <textarea id="quotes-textarea" rows="8" style="width:100%"></textarea>
+      <h3>Edit Quotes</h3>
+      <textarea id="quotes-textarea" rows="8" style="width:100%;box-sizing:border-box;"></textarea>
       <div class="modal-actions">
         <button id="save-quotes" class="mini-btn">Save</button>
         <button id="close-modal" class="mini-btn">Close</button>
@@ -72,7 +75,7 @@
   <!-- Settings button (lower-left) -->
   <button id="settings-button" aria-label="Settings">⚙</button>
 
-  <!-- Font picker modal (hidden) -->
+  <!-- Font picker modal -->
   <div id="font-picker-modal" class="modal" aria-hidden="true">
     <div class="modal-content" id="font-picker-content">
       <h3>Choose font</h3>
