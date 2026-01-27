@@ -233,25 +233,30 @@
   }
 
   /* ---------- High-res favicon enhancer ---------- */
+  // Enhances favicon images by requesting higher resolution from Google's favicon service
+  // Falls back to original if high-res version fails to load
   window.enhanceFaviconImage = function(imgElement, url) {
     try {
       const u = new URL(url);
       const domain = u.hostname;
       
-      // Request larger favicon from Google's service
+      // Request larger favicon from Google's service (128x128 instead of default 16x16)
       const highResUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
       
-      // Try to load high-res version
+      // Try to load high-res version with error handling
       const testImg = new Image();
       testImg.onload = function() {
+        // High-res loaded successfully, replace original
         imgElement.src = highResUrl;
       };
       testImg.onerror = function() {
-        // Keep original if high-res fails
+        // High-res failed to load, keep the original lower-res favicon
+        // This handles cases where Google's service is unavailable or domain has no icon
       };
       testImg.src = highResUrl;
     } catch (e) {
-      // Invalid URL, keep original
+      // Invalid URL format, keep original favicon
+      console.warn('Failed to enhance favicon for URL:', url, e);
     }
   };
 
@@ -261,22 +266,36 @@
     storageSyncGet([`rectcolor_${rectId}`]).then(res => {
       const savedColor = res[`rectcolor_${rectId}`] || '#ffffff';
       
-      const color = prompt('Enter hex color for icon background (e.g., #336699):', savedColor);
-      if (!color) return;
+      // Create a temporary color input for better UX
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = savedColor;
+      input.style.position = 'fixed';
+      input.style.top = '-100px';
+      document.body.appendChild(input);
       
-      const match = color.match(/^#?([0-9a-fA-F]{6})$/);
-      if (!match) {
-        alert('Invalid color format. Use hex like #336699');
-        return;
-      }
+      input.addEventListener('change', () => {
+        const hexColor = input.value;
+        const rectEl = document.getElementById(rectId);
+        if (rectEl) {
+          rectEl.style.background = hexColor;
+          // Save to storage
+          storageSyncSet({ [`rectcolor_${rectId}`]: hexColor });
+        }
+        document.body.removeChild(input);
+      });
       
-      const hexColor = '#' + match[1];
-      const rectEl = document.getElementById(rectId);
-      if (rectEl) {
-        rectEl.style.background = hexColor;
-        // Save to storage
-        storageSyncSet({ [`rectcolor_${rectId}`]: hexColor });
-      }
+      input.addEventListener('blur', () => {
+        // Remove input if user cancels
+        setTimeout(() => {
+          if (input.parentNode) {
+            document.body.removeChild(input);
+          }
+        }, 100);
+      });
+      
+      // Trigger the color picker
+      input.click();
     });
   };
 
@@ -299,7 +318,9 @@
     await applyDefaultBackgroundIfNeeded();
     await hydrateElementStyles();
     
-    // Wait a bit for bars to render, then hydrate rect colors
+    // Wait for bars to be initially rendered by main.js before hydrating rect colors
+    // This timeout ensures the DOM elements are ready. The MutationObserver below
+    // will handle any subsequent updates.
     setTimeout(hydrateRectColors, 500);
   }
 
