@@ -1,3 +1,17 @@
+// main.js - Manifest V3 compatible new-tab logic using chrome.storage
+// Features implemented:
+// - top/bottom bars (add/remove links, favicon), right-click removal
+// - background upload and gallery (stored in chrome.storage.local as data URLs)
+// - on-load random background selection, and overlay color selection via pixel sampling
+// - custom icon/text color override (sync setting), used for icons/text and overlay derivation
+// - center date/time (12/24 toggle), quotes (editable list saved to storage)
+// - sticky notes (add/edit/delete, three colors) saved to chrome.storage.local
+//
+// Storage strategy:
+// - chrome.storage.sync: small settings and arrays (topLinks, bottomLinks, colorOverride, clock24)
+// - chrome.storage.local: larger assets (bgList, notes, bgCurrent)
+// Note: chrome.storage is async; helper wrappers below.
+
 (function(){
   'use strict';
 
@@ -64,7 +78,7 @@
   };
 
   /* ---------- Utility helpers ---------- */
-  function $(id){return document.getElementById(id);} 
+  function $(id){return document.getElementById(id);}
   function qsa(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
   function uid(){ return Math.random().toString(36).slice(2,9); }
 
@@ -101,20 +115,11 @@
 
     const icon = document.createElement('span');
     icon.className = 'icon';
-    // assign an id so the rectangle can be targeted for color changes
-    const rectId = 'rect-' + uid();
-    icon.id = rectId;
-
     const fav = faviconForUrl(link.url);
     if (fav) {
       const img = document.createElement('img');
-      img.alt = '';
-      // size the image so it renders crisply at common icon sizes
-      img.width = 40; img.height = 40;
-      img.style.width = '40px'; img.style.height = '40px';
       img.src = fav;
-      // allow ui-enhancements to replace with higher-res variant
-      if (window.enhanceFaviconImage) window.enhanceFaviconImage(img, link.url);
+      img.alt = '';
       icon.appendChild(img);
     } else {
       icon.textContent = (link.title||link.url||'•').charAt(0).toUpperCase();
@@ -126,18 +131,8 @@
     label.textContent = link.title || link.url;
     label.style.fontSize = '12px';
 
-    // small color button for the icon rectangle
-    const colorBtn = document.createElement('button');
-    colorBtn.className = 'rect-color-btn';
-    colorBtn.title = 'Change icon background';
-    colorBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (window.openRectColorPicker) window.openRectColorPicker(rectId);
-    });
-
     a.appendChild(icon);
     a.appendChild(label);
-    a.appendChild(colorBtn);
 
     // right-click remove
     a.addEventListener('contextmenu', (ev) => {
@@ -505,7 +500,7 @@
   function addLinkPrompt(list) {
     const url = prompt('Enter URL (https://...)');
     if (!url) return;
-    const title = prompt('Title (optional)', url.replace(/^https?:\/\/,'').replace(/\/.*$/,'')).trim();
+    const title = prompt('Title (optional)', url.replace(/^https?:\/\//,'').replace(/\/.*$/,''));
     const entry = { title: title || url, url: url };
     if (list === 'top') state.topLinks.push(entry);
     else state.bottomLinks.push(entry);
@@ -540,9 +535,6 @@
       setBodyBackground(r);
     } else if (state.bgCurrent) {
       setBodyBackground(state.bgCurrent);
-    } else {
-      // packaged default fallback
-      setBodyBackground('default.png');
     }
 
     // initial renders
