@@ -82,8 +82,8 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 /* center-controls moved to lower-left and placed above bottom icons and near settings */
 .center-controls{
   position: fixed;
-  left: 20px;
-  bottom: 76px;
+  left: 82px;
+  bottom: 66px;
   transform: none;
   display:flex;
   gap:8px;
@@ -183,7 +183,7 @@ body.settings-open .remove-shortcut{ display:flex; }
 /* floating add-note button (moved below top bar) - now uses accent color */
 .fab{
   position: fixed;
-  top: 60px;
+  top: 60px; 
   left: 20px;
   z-index: 95;
   width:64px;
