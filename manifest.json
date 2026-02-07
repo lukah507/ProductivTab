@@ -7,7 +7,14 @@
     "newtab": "index.html"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "favicon"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["_favicon/*"],
+      "matches": ["<all_urls>"]
+    }
   ],
   "icons": {
     "128": "128.png"
