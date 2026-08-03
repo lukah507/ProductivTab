@@ -1,29 +1,15 @@
-// textStyle.js — the ONE font/color/bold/italic picker for #date and
-// #time. This replaces two previously-competing systems: main.js had
-// a modal with separate color+bold checkboxes persisted under a single
-// `textStyles` object, while ui-enhancements.js had a click-the-text
-// picker with font-family+bold+italic persisted under per-element
-// `style_<id>` keys. Both wrote to the same elements' inline styles
-// without knowing about each other, so state could visibly diverge
-// depending which UI the user touched last. There is now exactly one
-// schema (`style_date` / `style_time`, each { fontFamily, color, bold,
-// italic }) and one entry point (click the text itself).
-// (The picker previously also covered #quote; that element was removed
-// along with the quote-of-the-moment feature, so TARGET_IDS below only
-// lists 'date' and 'time' now.)
+// textStyle.js — the color/bold/italic picker for #date and #time.
+//
+// This used to also offer a font-family choice (Inter vs Krona One), but
+// the whole extension now uses a single embedded font (Inter -- see
+// fonts.css), so a picker with exactly one option would just be dead UI.
+// If you ever add a second font file back, reintroduce a font-family
+// section here the same way the color/bold/italic controls below are
+// built, and add it to the `style_<id>` schema.
 
 import { storageSyncGet, storageSyncSet, onStorageChanged } from './storage.js';
 
 const TARGET_IDS = ['date', 'time'];
-
-// Keep this in sync with the @font-face declarations in fonts.css --
-// 'Molle', 'Cossette', and 'MomoTrust' were listed here previously but
-// their .ttf files were never actually included in the package, so
-// selecting them silently fell back to the browser default font.
-const AVAILABLE_FONTS = [
-  { name: 'Inter (Default)', family: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial' },
-  { name: 'Krona One', family: "'Krona One', sans-serif" }
-];
 
 const fontPickerModal = document.getElementById('font-picker-modal');
 const fontList = document.getElementById('font-list');
@@ -36,7 +22,6 @@ function styleKey(id) { return `style_${id}`; }
 function applyStyleToElement(id, style) {
   const el = document.getElementById(id);
   if (!el || !style) return;
-  el.style.fontFamily = style.fontFamily || '';
   el.style.color = style.color || '';
   el.style.fontWeight = style.bold ? '700' : '';
   el.style.fontStyle = style.italic ? 'italic' : '';
@@ -52,40 +37,9 @@ function openPicker(id) {
   if (!targetEl || !fontList) return;
 
   storageSyncGet([styleKey(id)]).then(res => {
-    const style = Object.assign({ fontFamily: '', color: '', bold: false, italic: false }, res[styleKey(id)] || {});
+    const style = Object.assign({ color: '', bold: false, italic: false }, res[styleKey(id)] || {});
 
     fontList.innerHTML = '';
-
-    // Font family options
-    AVAILABLE_FONTS.forEach(font => {
-      const option = document.createElement('div');
-      option.className = 'font-option';
-      if (style.fontFamily === font.family || (!style.fontFamily && font.family.startsWith('Inter'))) {
-        option.classList.add('selected');
-      }
-
-      const name = document.createElement('div');
-      name.className = 'font-option-name';
-      name.textContent = font.name;
-
-      const preview = document.createElement('div');
-      preview.className = 'font-option-preview';
-      preview.textContent = 'The quick brown fox jumps over the lazy dog';
-      preview.style.fontFamily = font.family;
-
-      option.appendChild(name);
-      option.appendChild(preview);
-
-      option.addEventListener('click', () => {
-        fontList.querySelectorAll('.font-option').forEach(o => o.classList.remove('selected'));
-        option.classList.add('selected');
-        style.fontFamily = font.family;
-        applyStyleToElement(id, style);
-        saveStyle(id, style);
-      });
-
-      fontList.appendChild(option);
-    });
 
     // Color + bold/italic row
     const controlsRow = document.createElement('div');

@@ -9,7 +9,7 @@
 }
 
 /* Global */
-html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:var(--text-color);background:#111}
+html,body{height:100%;margin:0;font-family:'Inter', sans-serif;color:var(--text-color);background:#111}
 
 /* Ensure uploaded backgrounds are centered and cover the viewport */
 body {
@@ -27,19 +27,7 @@ body {
 .bar-overlay{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:1}
 
 /* visible bars */
-.link-bar{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  z-index:2;
-  pointer-events:auto;
-  /* experimental: rounded-rectangle border around the top/bottom bars --
-     easy to remove (just delete these 3 lines) if it doesn't end up
-     looking right */
-  border: 2px solid #fff;
-  border-radius: 12px;
-  padding: 6px 16px;
-}
+.link-bar{display:flex;gap:8px;align-items:center;z-index:2;pointer-events:auto}
 
 /* link item - reserve extra right padding for remove icon */
 .link-item{
@@ -88,7 +76,14 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 /* center stack: date first (smaller), time underneath (large) */
 #center-stack{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:10;pointer-events:none}
 .center-date{font-size:32px;opacity:0.95;pointer-events:auto}
-.center-time{font-size:120px;font-weight:600;margin-top:8px;pointer-events:auto}
+.center-time{font-size:150px;font-weight:600;margin-top:8px;pointer-events:auto}
+/* seconds render smaller + dimmer than hour:minute, e.g. "10:45" then a
+   smaller ":12" -- sized relative to .center-time (2/3) so it scales if
+   the main time size ever changes */
+.center-time .time-seconds{
+  font-size:0.667em;
+  opacity:0.55;
+}
 
 /* center-controls: vertical list directly below the settings button
    (now top-right, so this panel is right-anchored and its items align to
@@ -250,7 +245,7 @@ body.settings-open .remove-shortcut{ display:flex; }
 
 /* small responsive adjustments */
 @media (max-width:720px){
-  .center-time{font-size:75px}
+  .center-time{font-size:94px}
   .center-controls{top:68px;right:8px}
   #notes-container{display:none}
 }

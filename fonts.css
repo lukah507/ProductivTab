@@ -1,16 +1,21 @@
-/* Font-face declarations for custom fonts.
-   NOTE: this previously declared @font-face for 'Molle', 'Cossette', and
-   'MomoTrust' -- none of those .ttf files ship in /fonts, so those fonts
-   silently fell back to the browser default everywhere they were "selected".
-   Only KronaOne-Regular.ttf actually exists in this package, so that's the
-   only custom font declared here now. Add more @font-face blocks here as
-   you add real font files, and keep textStyle.js's AVAILABLE_FONTS list in
-   sync with what's declared here. */
+/* Font-face declarations.
+   The whole extension now uses a single font -- Inter -- embedded from
+   the variable font file below instead of relying on the system font
+   stack (which silently fell back to whatever "Inter-ish" font each OS
+   happened to ship). font-weight is declared as a range (100 900) since
+   this is a variable font, so bold text (and any other weight) renders
+   from the single file rather than needing separate static weight files.
+
+   Krona One's @font-face was removed along with the font-family picker
+   in textStyle.js -- with only one font in use, letting people "pick"
+   between one option was dead UI. The KronaOne-Regular.ttf file itself
+   is harmless to leave in /fonts if you want it back later, just re-add
+   an @font-face block for it and a picker entry in textStyle.js. */
 
 @font-face {
-  font-family: 'Krona One';
-  src: url('/fonts/KronaOne-Regular.ttf') format('truetype');
-  font-weight: normal;
+  font-family: 'Inter';
+  src: url('/fonts/Inter-VariableFont_opsz_wght.ttf') format('truetype');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }

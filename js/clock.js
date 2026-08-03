@@ -1,7 +1,6 @@
 // clock.js — owns the date/time display and the 12/24-hour toggle. Text
-// *styling* (font family/color/bold/italic) for these elements lives in
-// textStyle.js -- "what text shows" and "how it's styled" are different
-// concerns.
+// *styling* (color/bold/italic) for these elements lives in textStyle.js
+// -- "what text shows" and "how it's styled" are different concerns.
 //
 // The quote-of-the-moment feature (and its "Edit Quotes" modal) was
 // removed along with the #quote element itself -- there's nothing left to
@@ -19,25 +18,35 @@ const clockToggle = document.getElementById('clock-toggle');
 let clock24 = false;
 
 function formatDate(d) {
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = d.toLocaleString(undefined, { month: 'long' });
+  // "Monday, August 3" -- weekday, month day (day not zero-padded).
   const weekday = d.toLocaleString(undefined, { weekday: 'long' });
-  return `${day} ${month}, ${weekday}`;
+  const month = d.toLocaleString(undefined, { month: 'long' });
+  const day = d.getDate();
+  return `${weekday}, ${month} ${day}`;
 }
-function formatTime(d) {
-  // hour:minute only -- no seconds, no AM/PM suffix (even in 12-hour mode).
-  // formatToParts (rather than toLocaleTimeString + regex-stripping " PM")
-  // pulls just the hour/minute parts directly, so it's not fragile against
-  // locale differences in how the AM/PM marker is formatted.
+
+// Returns the hour:minute portion and the seconds portion separately, so
+// they can be rendered at different sizes (seconds smaller/dimmer) while
+// still sharing one line.
+function getTimeParts(d) {
   const parts = new Intl.DateTimeFormat([], { hour12: !clock24, hour: '2-digit', minute: '2-digit' }).formatToParts(d);
   const hour = parts.find(p => p.type === 'hour').value;
   const minute = parts.find(p => p.type === 'minute').value;
-  return `${hour}:${minute}`;
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return { main: `${hour}:${minute}`, seconds };
 }
+
 function tick() {
   const now = new Date();
   if (dateEl) dateEl.textContent = formatDate(now);
-  if (timeEl) timeEl.textContent = formatTime(now);
+  if (timeEl) {
+    const { main, seconds } = getTimeParts(now);
+    // Built as two spans (not plain textContent) so .time-seconds can be
+    // styled smaller/dimmer via CSS. Both values are digits/locale
+    // formatting from Intl -- no user-controlled text -- so innerHTML here
+    // carries no injection risk.
+    timeEl.innerHTML = `<span class="time-main">${main}</span><span class="time-seconds">:${seconds}</span>`;
+  }
 }
 setInterval(tick, 1000);
 
