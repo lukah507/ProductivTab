@@ -25,8 +25,14 @@ function formatDate(d) {
   return `${day} ${month}, ${weekday}`;
 }
 function formatTime(d) {
-  if (clock24) return d.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  return d.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  // hour:minute only -- no seconds, no AM/PM suffix (even in 12-hour mode).
+  // formatToParts (rather than toLocaleTimeString + regex-stripping " PM")
+  // pulls just the hour/minute parts directly, so it's not fragile against
+  // locale differences in how the AM/PM marker is formatted.
+  const parts = new Intl.DateTimeFormat([], { hour12: !clock24, hour: '2-digit', minute: '2-digit' }).formatToParts(d);
+  const hour = parts.find(p => p.type === 'hour').value;
+  const minute = parts.find(p => p.type === 'minute').value;
+  return `${hour}:${minute}`;
 }
 function tick() {
   const now = new Date();

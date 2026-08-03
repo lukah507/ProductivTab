@@ -72,7 +72,6 @@ function renderLinkItem(link) {
   const label = document.createElement('div');
   label.className = 'label';
   label.textContent = link.title || link.url;
-  label.style.fontSize = '12px';
 
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-shortcut';
