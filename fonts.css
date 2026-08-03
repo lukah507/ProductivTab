@@ -1,24 +1,15 @@
-/* Font-face declarations for custom fonts */
+/* Font-face declarations for custom fonts.
+   NOTE: this previously declared @font-face for 'Molle', 'Cossette', and
+   'MomoTrust' -- none of those .ttf files ship in /fonts, so those fonts
+   silently fell back to the browser default everywhere they were "selected".
+   Only KronaOne-Regular.ttf actually exists in this package, so that's the
+   only custom font declared here now. Add more @font-face blocks here as
+   you add real font files, and keep textStyle.js's AVAILABLE_FONTS list in
+   sync with what's declared here. */
 
 @font-face {
-  font-family: 'Molle';
-  src: url('/fonts/Molle-Regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Cossette';
-  src: url('/fonts/CossetteTexte-Regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'MomoTrust';
-  src: url('/fonts/MomoTrustDisplay-Regular.ttf') format('truetype');
+  font-family: 'Krona One';
+  src: url('/fonts/KronaOne-Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

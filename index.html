@@ -16,32 +16,30 @@
     <div id="top-bar-wrap" class="bar-wrap">
       <div id="top-bar-overlay" class="bar-overlay" title="Top overlay area"></div>
       <div id='top-bar' class="link-bar" aria-label="Top bookmarks bar"></div>
-      <button id="top-add-btn" class="mini-btn hidden-until-settings" title="Add top link">+ Add</button>
+      <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
     </div>
 
-    <!-- Floating add-note button (moved to be under top bar). Text changed to "Note" -->
-    <button id="add-note-fab" class="mini-btn fab" title="Add Note">Note</button>
+    <!-- Icon-only add-note button, top-left next to the settings button -->
+    <button id="add-note-fab" class="icon-btn" title="Add Note" aria-label="Add note">+</button>
 
-    <!-- Center stack (date / time / quote) -->
+    <!-- Center stack (time / date) -->
     <main id="center-stack">
-      <div id="date" class="center-date" aria-live="polite"></div>
       <div id="time" class="center-time" aria-live="polite"></div>
-      <div id="quote" class="center-quote" aria-live="polite"></div>
+      <div id="date" class="center-date" aria-live="polite"></div>
     </main>
 
-    <!-- Settings / controls (moved to lower-left near settings button) -->
+    <!-- Settings / controls -- appear as a vertical list below the settings button -->
     <div id="center-controls" class="center-controls hidden" aria-hidden="true">
       <button id="clock-toggle" class="mini-btn">12/24</button>
-      <button id="edit-quotes" class="mini-btn">Edit Quotes</button>
 
       <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
       <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
 
       <!-- Color picker for icon/text color (keeps icons and center text separate) -->
-      <input id="color-input" type="color" class="color-input" title="Pick a color">
-      <button id="color-apply" class="mini-btn">Apply Color</button>
-
-      <!-- "Done" removed per previous request -->
+      <div class="control-row">
+        <input id="color-input" type="color" class="color-input" title="Pick a color">
+        <button id="color-apply" class="mini-btn">Apply Color</button>
+      </div>
     </div>
 
     <!-- Notes area (moved to left side). The floating + button is separate and sits above settings -->
@@ -53,56 +51,30 @@
     <div id="bottom-bar-wrap" class="bar-wrap">
       <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
       <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
-      <button id="bottom-add-btn" class="mini-btn hidden-until-settings" title="Add bottom link">+ Add</button>
+      <button id="bottom-add-btn" class="mini-btn" title="Add bottom link">+ Add</button>
     </div>
 
   </div>
 
-  <!-- Quotes modal -->
-  <div id="modal" class="modal" aria-hidden="true">
-    <div class="modal-content">
-      <h3>Edit Quotes</h3>
-      <textarea id="quotes-textarea" rows="8" style="width:100%;box-sizing:border-box;"></textarea>
-      <div class="modal-actions">
-        <button id="save-quotes" class="mini-btn">Save</button>
-        <button id="close-modal" class="mini-btn">Close</button>
-      </div>
-    </div>
-  </div>
+  <!-- Settings button (upper-left; icon-only, no background) -->
+  <button id="settings-button" class="icon-btn" aria-label="Settings">⚙</button>
 
-  <!-- Settings button (lower-left) -->
-  <button id="settings-button" aria-label="Settings">⚙</button>
-
-  <!-- Font picker modal (now enhanced with text color / bold controls for time/date/quote) -->
+  <!-- Font picker modal: click the date/time text to open this.
+       js/textStyle.js populates #font-list with the font choices plus a
+       color input and bold/italic toggles, and applies changes live, so
+       there's no separate "Apply" step. -->
   <div id="font-picker-modal" class="modal" aria-hidden="true">
     <div class="modal-content" id="font-picker-content">
       <h3>Text Styling</h3>
 
       <div id="font-list"></div>
 
-      <div style="margin-top:12px;display:flex;gap:8px;flex-direction:column">
-        <div>
-          <label>Time color: <input id="time-color-input" type="color"></label>
-          <label style="margin-left:12px"><input id="time-bold" type="checkbox"> Bold</label>
-        </div>
-        <div>
-          <label>Date color: <input id="date-color-input" type="color"></label>
-          <label style="margin-left:12px"><input id="date-bold" type="checkbox"> Bold</label>
-        </div>
-        <div>
-          <label>Quote color: <input id="quote-color-input" type="color"></label>
-          <label style="margin-left:12px"><input id="quote-bold" type="checkbox"> Bold</label>
-        </div>
-      </div>
-
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button id="font-apply" class="mini-btn">Apply</button>
-        <button id="font-picker-cancel" class="mini-btn">Cancel</button>
+        <button id="font-picker-cancel" class="mini-btn">Close</button>
       </div>
     </div>
   </div>
 
-  <script src="main.js"></script>
-  <script src="ui-enhancements.js"></script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
