@@ -21,7 +21,7 @@ body {
 /* Bars */
 .bar-wrap{position:fixed;left:0;right:0;pointer-events:none}
 #top-bar-wrap{top:12px;height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;gap:8px;z-index:20}
-#bottom-bar-wrap{bottom:18px;height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;gap:8px;padding-left:90px;z-index:20}
+#bottom-bar-wrap{bottom:18px;height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;gap:8px;z-index:20}
 
 /* overlays */
 .bar-overlay{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;z-index:1}
@@ -78,14 +78,16 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 .center-time{font-size:90px;font-weight:600;pointer-events:auto}
 .center-date{font-size:32px;margin-top:8px;opacity:0.95;pointer-events:auto}
 
-/* center-controls: vertical list directly below the settings button */
+/* center-controls: vertical list directly below the settings button
+   (now top-right, so this panel is right-anchored and its items align to
+   the right edge, under the button) */
 .center-controls{
   position: fixed;
-  top: 80px; /* settings button: top 20px + height 48px + 12px gap */
-  left: 20px;
+  top: 72px; /* settings button: top 12px + height 48px + 12px gap */
+  right: 20px;
   display:flex;
   flex-direction: column;
-  align-items:flex-start;
+  align-items:flex-end;
   gap:8px;
   pointer-events:auto;
   z-index:80;
@@ -187,12 +189,15 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 body.settings-open .link-item{ position: relative; }
 body.settings-open .remove-shortcut{ display:flex; }
 
-/* Icon-only buttons: settings + add-note, top-left, no background --
-   just a white icon (with a soft drop-shadow so it stays legible over
-   light background photos, since there's no background pill anymore). */
+/* Icon-only buttons: settings + add-note. No background, just a white
+   icon (with a soft drop-shadow so it stays legible over light background
+   photos, since there's no background pill anymore). top:12px matches
+   #top-bar-wrap's top offset and the height (48px) matches its height, so
+   these sit level with the top bar overlay rather than floating above or
+   below it. */
 .icon-btn{
   position: fixed;
-  top: 20px;
+  top: 12px;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -213,9 +218,9 @@ body.settings-open .remove-shortcut{ display:flex; }
   opacity: 0.85;
 }
 
-/* settings button: leftmost */
+/* settings button: top-right */
 #settings-button{
-  left: 20px;
+  right: 20px;
   font-size: 24px;
 }
 #settings-button.active{
@@ -223,9 +228,9 @@ body.settings-open .remove-shortcut{ display:flex; }
   opacity: 1;
 }
 
-/* add-note button: directly to the right of settings, "+" icon */
+/* add-note button: top-left, "+" icon */
 #add-note-fab{
-  left: 80px; /* 20px + 48px settings button width + 12px gap */
+  left: 20px;
   font-size: 30px;
   font-weight: 300;
   z-index: 95;
@@ -234,6 +239,6 @@ body.settings-open .remove-shortcut{ display:flex; }
 /* small responsive adjustments */
 @media (max-width:720px){
   .center-time{font-size:56px}
-  .center-controls{top:76px;left:8px}
+  .center-controls{top:68px;right:8px}
   #notes-container{display:none}
 }
