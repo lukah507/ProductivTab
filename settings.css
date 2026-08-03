@@ -1,48 +1,10 @@
 /* #settings-button base styles live in style.css -- kept in one place now
    instead of split (and partly duplicated) across two stylesheets. */
 
-/* Font picker modal specific styles */
-#font-picker-modal .modal-content {
-  max-width: 500px;
-  background: #fff;
-  color: #000;
-}
-
-#font-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.font-style-toggles {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  justify-content: center;
-}
-
-.font-style-toggle {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s ease;
-}
-
-.font-style-toggle:hover {
-  background: #f0f0f0;
-  border-color: #999;
-}
-
-.font-style-toggle.active {
-  background: #336699;
-  color: #fff;
-  border-color: #336699;
-}
+/* (The font-picker modal's CSS -- #font-picker-modal, #font-list,
+   .font-style-toggle -- was removed along with js/textStyle.js. Date/time
+   styling is fixed via CSS now, so there was no longer a picker UI to
+   style.) */
 
 /* Hidden class for center controls */
 .hidden {

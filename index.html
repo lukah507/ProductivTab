@@ -19,8 +19,9 @@
       <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
     </div>
 
-    <!-- Icon-only add-note button, top-left, level with the top bar overlay -->
-    <button id="add-note-fab" class="icon-btn" title="Add Note" aria-label="Add note">
+    <!-- Icon-only note button, top-left, level with the top bar overlay.
+         Toggles the notes panel open/closed (js/notes.js). -->
+    <button id="add-note-fab" class="icon-btn" title="Toggle notes" aria-label="Toggle notes panel">
       <img class="icon-btn-img" src="icons/note.png" alt="">
     </button>
 
@@ -44,9 +45,13 @@
       </div>
     </div>
 
-    <!-- Notes area (moved to left side). The floating + button is separate and sits above settings -->
-    <div id="notes-container" aria-live="polite">
-      <div id="notes-list"></div>
+    <!-- Notes drawer: toggled open/closed by the note button (js/notes.js).
+         Slides in from the left, full viewport height. -->
+    <div id="notes-panel" class="notes-panel" aria-hidden="true">
+      <div class="notes-panel-inner">
+        <button id="notes-add-btn" class="notes-add-btn" type="button">+ Add Note</button>
+        <div id="notes-list"></div>
+      </div>
     </div>
 
     <!-- Bottom bar wrapper (overlay + visible bar) -->
@@ -62,22 +67,6 @@
   <button id="settings-button" class="icon-btn" aria-label="Settings">
     <img class="icon-btn-img" src="icons/setting.png" alt="">
   </button>
-
-  <!-- Font picker modal: click the date/time text to open this.
-       js/textStyle.js populates #font-list with the font choices plus a
-       color input and bold/italic toggles, and applies changes live, so
-       there's no separate "Apply" step. -->
-  <div id="font-picker-modal" class="modal" aria-hidden="true">
-    <div class="modal-content" id="font-picker-content">
-      <h3>Text Styling</h3>
-
-      <div id="font-list"></div>
-
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button id="font-picker-cancel" class="mini-btn">Close</button>
-      </div>
-    </div>
-  </div>
 
   <script type="module" src="main.js"></script>
 </body>

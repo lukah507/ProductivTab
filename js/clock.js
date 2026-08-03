@@ -1,6 +1,6 @@
-// clock.js — owns the date/time display and the 12/24-hour toggle. Text
-// *styling* (color/bold/italic) for these elements lives in textStyle.js
-// -- "what text shows" and "how it's styled" are different concerns.
+// clock.js — owns the date/time display and the 12/24-hour toggle.
+// Text color/weight for #date and #time are fixed via CSS now (no more
+// user-configurable picker -- see the note in main.js).
 //
 // The quote-of-the-moment feature (and its "Edit Quotes" modal) was
 // removed along with the #quote element itself -- there's nothing left to
