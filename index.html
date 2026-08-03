@@ -19,8 +19,10 @@
       <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
     </div>
 
-    <!-- Icon-only add-note button, top-left next to the settings button -->
-    <button id="add-note-fab" class="icon-btn" title="Add Note" aria-label="Add note">+</button>
+    <!-- Icon-only add-note button, top-left, level with the top bar overlay -->
+    <button id="add-note-fab" class="icon-btn" title="Add Note" aria-label="Add note">
+      <img class="icon-btn-img" src="icons/note.png" alt="">
+    </button>
 
     <!-- Center stack (date / time) -->
     <main id="center-stack">
@@ -56,8 +58,10 @@
 
   </div>
 
-  <!-- Settings button (upper-left; icon-only, no background) -->
-  <button id="settings-button" class="icon-btn" aria-label="Settings">⚙</button>
+  <!-- Settings button (top-right; icon-only, no background) -->
+  <button id="settings-button" class="icon-btn" aria-label="Settings">
+    <img class="icon-btn-img" src="icons/setting.png" alt="">
+  </button>
 
   <!-- Font picker modal: click the date/time text to open this.
        js/textStyle.js populates #font-list with the font choices plus a

@@ -62,11 +62,11 @@ body {
 }
 .icon img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* label - enlarged and bolded */
+/* label - enlarged, weight 450 */
 .label{
   font-size:16px;
   line-height:1;
-  font-weight:600;
+  font-weight:450;
 }
 
 /* Add buttons hidden until settings open */
@@ -75,14 +75,14 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 
 /* center stack: date first (smaller), time underneath (large) */
 #center-stack{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;z-index:10;pointer-events:none}
-.center-date{font-size:32px;opacity:0.95;pointer-events:auto}
+.center-date{font-size:36px;font-weight:550;opacity:0.95;pointer-events:auto}
 .center-time{font-size:150px;font-weight:600;margin-top:8px;pointer-events:auto}
 /* seconds render smaller + dimmer than hour:minute, e.g. "10:45" then a
    smaller ":12" -- sized relative to .center-time (2/3) so it scales if
    the main time size ever changes */
 .center-time .time-seconds{
   font-size:0.667em;
-  opacity:0.55;
+  opacity:0.70;
 }
 
 /* center-controls: vertical list directly below the settings button
@@ -196,12 +196,14 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 body.settings-open .link-item{ position: relative; }
 body.settings-open .remove-shortcut{ display:flex; }
 
-/* Icon-only buttons: settings + add-note. No background, just a white
-   icon (with a soft drop-shadow so it stays legible over light background
-   photos, since there's no background pill anymore). top:12px matches
+/* Icon-only buttons: settings + add-note. No background/drop-shadow at
+   rest -- just the white icon image. On hover (and while the settings
+   panel is open, via .active), a soft 20%-opacity white circle fades in
+   behind the icon to signal it's interactive; since the button itself is
+   already a 48px circle (border-radius:50%), this is just a background
+   color change on top of the existing shape. top:12px matches
    #top-bar-wrap's top offset and the height (48px) matches its height, so
-   these sit level with the top bar overlay rather than floating above or
-   below it. */
+   these sit level with the top bar overlay. */
 .icon-btn{
   position: fixed;
   top: 12px;
@@ -216,30 +218,27 @@ body.settings-open .remove-shortcut{ display:flex; }
   display:flex;
   align-items:center;
   justify-content:center;
-  line-height: 1;
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.45));
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: background-color 0.2s ease;
 }
-.icon-btn:hover{
-  transform: scale(1.08);
-  opacity: 0.85;
+.icon-btn:hover,
+.icon-btn.active{
+  background: rgba(255,255,255,0.20);
+}
+.icon-btn-img{
+  width: 22px;
+  height: 22px;
+  display:block;
+  pointer-events:none; /* clicks land on the button, not the image */
 }
 
 /* settings button: top-right */
 #settings-button{
   right: 20px;
-  font-size: 24px;
-}
-#settings-button.active{
-  transform: scale(1.08);
-  opacity: 1;
 }
 
-/* add-note button: top-left, "+" icon */
+/* add-note button: top-left */
 #add-note-fab{
   left: 20px;
-  font-size: 30px;
-  font-weight: 300;
   z-index: 95;
 }
 
