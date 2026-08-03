@@ -76,7 +76,7 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
 /* center stack: date first (smaller), time underneath (large) */
 /* moved up 20px from dead-center via the extra translateY */
 #center-stack{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) translateY(-20px);text-align:center;z-index:10;pointer-events:none}
-.center-date{font-size:36px;font-weight:500;opacity:0.95;pointer-events:auto}
+.center-date{font-size:36px;font-weight:500;opacity:0.75;pointer-events:auto}
 .center-time{font-size:150px;font-weight:700;margin-top:8px;pointer-events:auto}
 /* seconds render smaller + dimmer than hour:minute, e.g. "10:45" then a
    smaller ":12" -- sized relative to .center-time (2/3) so it scales if
