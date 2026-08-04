@@ -25,6 +25,11 @@
       <img class="icon-btn-img" src="icons/note.png" alt="">
     </button>
 
+    <!-- Sits next to the note icon (see #notes-add-btn in style.css for
+         positioning); only visible while the notes panel is open --
+         js/notes.js toggles the .open class on it alongside the panel. -->
+    <button id="notes-add-btn" class="notes-add-btn" type="button">+</button>
+
     <!-- Center stack (date / time) -->
     <main id="center-stack">
       <div id="date" class="center-date" aria-live="polite"></div>
@@ -49,7 +54,6 @@
          Slides in from the left, full viewport height. -->
     <div id="notes-panel" class="notes-panel" aria-hidden="true">
       <div class="notes-panel-inner">
-        <button id="notes-add-btn" class="notes-add-btn" type="button">+ Add Note</button>
         <div id="notes-list"></div>
       </div>
     </div>

@@ -32,6 +32,7 @@ function setPanelOpen(open) {
     notesPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
   }
   if (noteButton) noteButton.classList.toggle('active', open);
+  if (notesAddBtn) notesAddBtn.classList.toggle('open', open);
 }
 
 function createNoteElement(n) {
