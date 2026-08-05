@@ -72,11 +72,14 @@
   color: #111;
 }
 
-/* Background presets: 5 swatch buttons (bg/A.jpg - bg/E.jpg) in place of
-   the old file-upload input. Each button's data-bg-id is reused directly
-   as the image filename below, so adding/renaming presets only needs a
-   change in index.html + js/settings.js (BG_PRESET_IDS), not here.
-   .active marks whichever is currently applied. */
+/* Background presets: 5 swatch buttons in place of the old file-upload
+   input. The image each dot previews is set from JS (js/settings.js,
+   paintSwatches()) using the same BG_PRESETS map that applies the actual
+   background on click -- so there's a single source of truth for the
+   file path/extension instead of duplicating it here and risking the two
+   drifting out of sync (which is what was happening: this file still had
+   .jpg hardcoded while the real files are .jpeg).
+   .active marks whichever preset is currently applied. */
 .bg-presets{
   display: flex;
   gap: 8px;
@@ -91,13 +94,8 @@
   cursor: pointer;
   background-size: cover;
   background-position: center;
-  background-color: #333; /* shows while the jpeg loads / if it 404s */
+  background-color: #333; /* shows until JS paints the preview / if a file fails to load */
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 .bg-preset:hover{ transform: scale(1.08); }
 .bg-preset.active{ border-color: #fff; }
-.bg-preset[data-bg-id="A"]{ background-image: url('bg/A.jpg'); }
-.bg-preset[data-bg-id="B"]{ background-image: url('bg/B.jpg'); }
-.bg-preset[data-bg-id="C"]{ background-image: url('bg/C.jpg'); }
-.bg-preset[data-bg-id="D"]{ background-image: url('bg/D.jpg'); }
-.bg-preset[data-bg-id="E"]{ background-image: url('bg/E.jpg'); }

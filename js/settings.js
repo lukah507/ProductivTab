@@ -36,7 +36,7 @@ if (settingsBtn) {
    image data-URL from before this feature existed) is treated as a raw
    background-image value for backward compatibility. */
 const BG_PRESET_IDS = ['A', 'B', 'C', 'D', 'E'];
-const BG_PRESETS = Object.fromEntries(BG_PRESET_IDS.map(id => [id, `url(bg/${id}.jpg)`]));
+const BG_PRESETS = Object.fromEntries(BG_PRESET_IDS.map(id => [id, `url(bg/${id}.jpeg)`]));
 
 function resolveBackgroundCss(bgCurrent) {
   if (!bgCurrent) return BG_PRESETS.A;
@@ -53,6 +53,21 @@ function setActivePresetUI(bgCurrent) {
     btn.classList.toggle('active', btn.dataset.bgId === bgCurrent);
   });
 }
+
+// Paint each dot with a preview of the background it represents. Reuses
+// the exact same BG_PRESETS map that applyBackground() uses, just applied
+// to each button's own background-image instead of the page body's -- so
+// a dot's preview and what clicking it actually sets are guaranteed to
+// stay in sync (one map, two places it gets used).
+function paintSwatches() {
+  bgPresetButtons.forEach(btn => {
+    const id = btn.dataset.bgId;
+    if (BG_PRESETS[id]) {
+      btn.style.backgroundImage = BG_PRESETS[id];
+    }
+  });
+}
+paintSwatches();
 
 bgPresetButtons.forEach(btn => {
   btn.addEventListener('click', async () => {
