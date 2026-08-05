@@ -12,15 +12,7 @@
 <body>
   <div id="root">
 
-    <!-- Top bar wrapper (overlay + visible bar) -->
-    <div id="top-bar-wrap" class="bar-wrap">
-      <div id="top-bar-overlay" class="bar-overlay" title="Top overlay area"></div>
-      <div id='top-bar' class="link-bar" aria-label="Top bookmarks bar"></div>
-      <button id="top-add-btn" class="mini-btn" title="Add top link">+ Add</button>
-    </div>
-
-    <!-- Icon-only note button, top-left, level with the top bar overlay.
-         Toggles the notes panel open/closed (js/notes.js). -->
+    <!-- Icon-only note button, top-left. Toggles the notes panel open/closed (js/notes.js). -->
     <button id="add-note-fab" class="icon-btn" title="Toggle notes" aria-label="Toggle notes panel">
       <img class="icon-btn-img" src="icons/note.png" alt="">
     </button>
@@ -38,15 +30,23 @@
 
     <!-- Settings / controls -- appear as a vertical list below the settings button -->
     <div id="center-controls" class="center-controls hidden" aria-hidden="true">
-      <button id="clock-toggle" class="mini-btn">12/24</button>
+      <button id="clock-toggle" class="clock-toggle" type="button" aria-pressed="false" title="Toggle 12/24 hour clock">
+        <span class="clock-toggle-track">
+          <span class="clock-toggle-thumb"></span>
+          <span class="clock-toggle-label clock-toggle-label--12">12h</span>
+          <span class="clock-toggle-label clock-toggle-label--24">24h</span>
+        </span>
+      </button>
 
-      <label for="bg-upload" class="mini-btn file-label">Upload BG</label>
-      <input id="bg-upload" type="file" accept="image/*" multiple style="display:none">
-
-      <!-- Color picker for icon/text color (keeps icons and center text separate) -->
-      <div class="control-row">
-        <input id="color-input" type="color" class="color-input" title="Pick a color">
-        <button id="color-apply" class="mini-btn">Apply Color</button>
+      <!-- Background choice: 5 fixed presets (bg/A.jpg - bg/E.jpg) instead
+           of an upload picker. js/settings.js applies the matching image
+           for whichever data-bg-id is clicked and marks it .active. -->
+      <div id="bg-presets" class="bg-presets" role="group" aria-label="Background">
+        <button class="bg-preset" type="button" data-bg-id="A" title="Background A"></button>
+        <button class="bg-preset" type="button" data-bg-id="B" title="Background B"></button>
+        <button class="bg-preset" type="button" data-bg-id="C" title="Background C"></button>
+        <button class="bg-preset" type="button" data-bg-id="D" title="Background D"></button>
+        <button class="bg-preset" type="button" data-bg-id="E" title="Background E"></button>
       </div>
     </div>
 
@@ -58,11 +58,23 @@
       </div>
     </div>
 
-    <!-- Bottom bar wrapper (overlay + visible bar) -->
+    <!-- Bottom bar wrapper (overlay + visible bar). This is now the only
+         shortcuts bar -- the old top bar was removed. In its place,
+         #bar-switcher (js/links.js) lets you flip between several saved
+         sets of links without cluttering the row itself: both the
+         switcher and the add button are absolutely positioned on top of
+         the bar rather than sitting in its flex flow, so toggling them
+         never shifts the shortcuts. -->
     <div id="bottom-bar-wrap" class="bar-wrap">
       <div id="bottom-bar-overlay" class="bar-overlay" title="Bottom overlay area"></div>
-      <div id="bottom-bar" class="link-bar" aria-label="Bottom bookmarks bar"></div>
-      <button id="bottom-add-btn" class="mini-btn" title="Add bottom link">+ Add</button>
+
+      <div id="bar-switcher" class="bar-switcher" aria-label="Switch link set">
+        <div id="bar-dots" class="bar-dots"></div>
+        <button id="bar-add-set" class="bar-switch-add" type="button" title="Add a new link set">+</button>
+      </div>
+
+      <div id="bottom-bar" class="link-bar" aria-label="Bookmarks bar"></div>
+      <button id="bottom-add-btn" class="plus-btn" type="button" title="Add link" aria-label="Add link">+</button>
     </div>
 
   </div>

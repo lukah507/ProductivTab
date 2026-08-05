@@ -50,20 +50,32 @@ function tick() {
 }
 setInterval(tick, 1000);
 
+// Reflects clock24 onto the toggle switch itself -- .is-24 slides the
+// thumb over to the "24h" side and swaps which label reads as active
+// (see .clock-toggle-* rules in settings.css), and aria-pressed keeps it
+// accessible as an actual toggle rather than a plain button.
+function updateToggleUI() {
+  if (!clockToggle) return;
+  clockToggle.classList.toggle('is-24', clock24);
+  clockToggle.setAttribute('aria-pressed', clock24 ? 'true' : 'false');
+}
+
 if (clockToggle) {
   clockToggle.addEventListener('click', async () => {
     clock24 = !clock24;
+    updateToggleUI();
     await storageSyncSet({ clock24 });
     tick();
   });
 }
 
 onStorageChanged('sync', (changes) => {
-  if (changes.clock24) { clock24 = !!changes.clock24.newValue; tick(); }
+  if (changes.clock24) { clock24 = !!changes.clock24.newValue; updateToggleUI(); tick(); }
 });
 
 export async function init() {
   const res = await storageSyncGet(['clock24']);
   if (typeof res.clock24 !== 'undefined') clock24 = res.clock24;
+  updateToggleUI();
   tick();
 }

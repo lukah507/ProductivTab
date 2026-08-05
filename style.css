@@ -18,9 +18,12 @@ body {
   background-repeat: no-repeat;
 }
 
-/* Bars */
+/* Bars -- top bar was removed; the bottom bar is the only shortcuts bar
+   now. It stays position:fixed so it can act as the containing block for
+   the absolutely-positioned switcher/add-button overlaid on top of it
+   (see .bar-switcher / .plus-btn below) -- that's what lets those
+   controls appear/disappear without ever shifting the shortcuts. */
 .bar-wrap{position:fixed;left:0;right:0;pointer-events:none}
-#top-bar-wrap{top:12px;height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;gap:8px;z-index:20}
 #bottom-bar-wrap{bottom:18px;height:48px;display:flex;align-items:center;justify-content:center;padding:8px 12px;gap:8px;z-index:20}
 
 /* overlays */
@@ -69,9 +72,87 @@ body {
   font-weight:450;
 }
 
-/* Add buttons hidden until settings open */
-#top-add-btn,#bottom-add-btn{pointer-events:auto;z-index:20;position:relative;display:none}
-body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:inline-block }
+/* Add-link button ("+"): styled like the settings/notes icon buttons --
+   transparent at rest, a soft white circle behind it on hover. It's
+   absolutely positioned over the bar (not part of the flex row those
+   shortcuts live in), and only shown while settings are open, so it never
+   pushes the shortcuts around when it appears or disappears. */
+.plus-btn{
+  position:absolute;
+  right:20px;
+  top:50%;
+  transform:translateY(-50%);
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border:none;
+  background:transparent;
+  color:#fff;
+  font-size:26px;
+  font-weight:300;
+  line-height:1;
+  cursor:pointer;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  transition: background-color 0.2s ease;
+  z-index:21;
+  pointer-events:auto;
+}
+body.settings-open .plus-btn{ display:flex; }
+.plus-btn:hover{ background: rgba(255,255,255,0.20); }
+
+/* Bar switcher: quickly flip between saved sets of links for the bottom
+   bar. Absolutely positioned on the opposite side from .plus-btn, for the
+   same reason -- it overlays the bar instead of living in its flex flow. */
+.bar-switcher{
+  position:absolute;
+  left:20px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  z-index:21;
+  pointer-events:auto;
+}
+.bar-dots{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.bar-switch-dot{
+  width:9px;
+  height:9px;
+  padding:0;
+  border:none;
+  border-radius:50%;
+  background:rgba(255,255,255,0.35);
+  cursor:pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.bar-switch-dot:hover{ background:rgba(255,255,255,0.6); }
+.bar-switch-dot.active{ background:#fff; transform:scale(1.25); }
+/* "add a new set" -- kept out of the way, only shown while settings are
+   open, same as the add-link + button. */
+.bar-switch-add{
+  display:none;
+  width:18px;
+  height:18px;
+  padding:0;
+  border:none;
+  border-radius:50%;
+  background:rgba(255,255,255,0.12);
+  color:#fff;
+  font-size:12px;
+  line-height:1;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition: background-color 0.2s ease;
+}
+body.settings-open .bar-switch-add{ display:flex; }
+.bar-switch-add:hover{ background: rgba(255,255,255,0.25); }
 
 /* center stack: date first (smaller), time underneath (large) */
 /* moved up 20px from dead-center via the extra translateY */
@@ -100,36 +181,6 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
   pointer-events:auto;
   z-index:80;
 }
-
-/* keeps the color swatch + apply button paired on one row within the
-   vertical settings list */
-.control-row{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-/* Buttons / inputs */
-.mini-btn{
-  pointer-events:auto;
-  padding:6px 12px;
-  height:36px;
-  border-radius:8px;
-  border:none;
-  background:rgba(0,0,0,0.45);
-  color:#fff;
-  cursor:pointer;
-  font-size:13px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  line-height: 1;
-  vertical-align: middle;
-}
-.file-label{
-  cursor:pointer;
-}
-.color-input{width:36px;height:36px;padding:4px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:transparent;vertical-align:middle}
 
 /* Notes panel: full-height drawer stuck to the left edge, toggled open
    by the note button (js/notes.js adds/removes .open). translateX slide +
@@ -230,7 +281,7 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
   min-height:90px;
   border:0;
   background:transparent;
-  resize:vertical;
+  resize:none; /* the drag handle didn't actually resize anything useful inside the fixed-width panel, so it's just off now */
   outline:none;
   font-family:'Inter', sans-serif;
   font-weight:400;
@@ -259,7 +310,9 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
    elements remain in index.html; the quotes modal and font-picker modal
    were both removed in earlier passes.) */
 
-/* Remove-shortcut button */
+/* Remove-shortcut button: same "invisible until you hover" treatment as
+   the settings/notes icon buttons -- transparent at rest, soft white
+   circle on hover -- just kept at its original small size. */
 .remove-shortcut{
   position:absolute;
   top:-6px;
@@ -268,7 +321,7 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
   height:22px;
   border-radius:50%;
   border:none;
-  background:rgba(0,0,0,0.65);
+  background:transparent;
   color:#fff;
   font-weight:700;
   display:none;
@@ -278,8 +331,9 @@ body.settings-open #top-add-btn, body.settings-open #bottom-add-btn { display:in
   z-index:10;
   font-size:13px;
   line-height:1;
-  box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  transition: background-color 0.2s ease;
 }
+.remove-shortcut:hover{ background: rgba(255,255,255,0.20); }
 body.settings-open .link-item{ position: relative; }
 body.settings-open .remove-shortcut{ display:flex; }
 
@@ -288,9 +342,8 @@ body.settings-open .remove-shortcut{ display:flex; }
    panel is open, via .active), a soft 20%-opacity white circle fades in
    behind the icon to signal it's interactive; since the button itself is
    already a 48px circle (border-radius:50%), this is just a background
-   color change on top of the existing shape. top:12px matches
-   #top-bar-wrap's top offset and the height (48px) matches its height, so
-   these sit level with the top bar overlay. */
+   color change on top of the existing shape. top:12px is just the fixed
+   offset from the viewport edge these two buttons share. */
 .icon-btn{
   position: fixed;
   top: 12px;

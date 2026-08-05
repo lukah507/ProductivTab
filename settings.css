@@ -10,3 +10,94 @@
 .hidden {
   display: none !important;
 }
+
+/* 12/24 clock toggle: a small segmented switch instead of a plain text
+   button, so it's obvious at a glance which mode is active. The white
+   thumb sits under whichever label is active and slides over via
+   .is-24 (toggled in js/clock.js); the label sitting on top of the
+   thumb gets dark text for contrast, the other stays dim white. */
+.clock-toggle{
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.clock-toggle-track{
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 72px;
+  height: 32px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.45);
+  padding: 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.clock-toggle-thumb{
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 33px;
+  height: 26px;
+  border-radius: 13px;
+  background: rgba(255,255,255,0.92);
+  transition: transform 0.2s ease;
+  z-index: 1;
+}
+.clock-toggle.is-24 .clock-toggle-thumb{
+  transform: translateX(33px);
+}
+.clock-toggle-label{
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111;
+  transition: color 0.2s ease;
+}
+.clock-toggle-label--24{
+  color: rgba(255,255,255,0.55);
+}
+.clock-toggle.is-24 .clock-toggle-label--12{
+  color: rgba(255,255,255,0.55);
+}
+.clock-toggle.is-24 .clock-toggle-label--24{
+  color: #111;
+}
+
+/* Background presets: 5 swatch buttons (bg/A.jpg - bg/E.jpg) in place of
+   the old file-upload input. Each button's data-bg-id is reused directly
+   as the image filename below, so adding/renaming presets only needs a
+   change in index.html + js/settings.js (BG_PRESET_IDS), not here.
+   .active marks whichever is currently applied. */
+.bg-presets{
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.bg-preset{
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-color: #333; /* shows while the jpeg loads / if it 404s */
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.bg-preset:hover{ transform: scale(1.08); }
+.bg-preset.active{ border-color: #fff; }
+.bg-preset[data-bg-id="A"]{ background-image: url('bg/A.jpg'); }
+.bg-preset[data-bg-id="B"]{ background-image: url('bg/B.jpg'); }
+.bg-preset[data-bg-id="C"]{ background-image: url('bg/C.jpg'); }
+.bg-preset[data-bg-id="D"]{ background-image: url('bg/D.jpg'); }
+.bg-preset[data-bg-id="E"]{ background-image: url('bg/E.jpg'); }

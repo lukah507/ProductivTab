@@ -57,6 +57,13 @@ function createNoteElement(n) {
   del.textContent = 'Delete';
   del.addEventListener('click', async () => {
     notes = notes.filter(x => x.id !== n.id);
+    // renderNotes() bails out early if focus is still inside #notes-list
+    // (so we don't yank the list out from under someone mid-typing --
+    // see the comment on renderNotes below). The delete button itself is
+    // inside #notes-list, so without this blur() the click would leave
+    // it focused, that guard would trip, and the note would never
+    // actually disappear even though it was removed from `notes`.
+    del.blur();
     await saveNotes();
     renderNotes();
   });

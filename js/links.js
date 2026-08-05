@@ -1,26 +1,48 @@
-// links.js — owns the top/bottom bookmark bars: rendering, favicon
-// resolution, add/remove CRUD, and the "accent color" applied to link
-// text/icons. This is the only module that touches #top-bar / #bottom-bar.
+// links.js — owns the bottom bookmarks bar: rendering, favicon
+// resolution, add/remove CRUD, and the bar switcher that lets you flip
+// between several saved sets of links without cluttering the bar itself.
+// This is the only module that touches #bottom-bar / #bar-switcher.
+//
+// The old top bar is gone. In its place, links now live in named "sets"
+// (barSets) -- only one set's links show in the bar at a time, and
+// #bar-switcher (a small dot per set) swaps which one is showing. This
+// replaces having two separate bars with one bar that can hold as many
+// link groups as you want.
+//
+// The old per-link "accent color" (colorOverride / Apply Color) was
+// removed along with the rest of that settings-panel feature; links just
+// use the default text color now.
 
 import { storageSyncGet, storageSyncSet, onStorageChanged } from './storage.js';
 
-const topBar = document.getElementById('top-bar');
 const bottomBar = document.getElementById('bottom-bar');
-const topAddBtn = document.getElementById('top-add-btn');
 const bottomAddBtn = document.getElementById('bottom-add-btn');
+const barDots = document.getElementById('bar-dots');
+const barAddSetBtn = document.getElementById('bar-add-set');
 
-const DEFAULT_TOP_LINKS = [
-  { title: 'Google', url: 'https://www.google.com' },
-  { title: 'Gmail', url: 'https://mail.google.com' }
-];
-const DEFAULT_BOTTOM_LINKS = [
-  { title: 'YouTube', url: 'https://www.youtube.com' },
-  { title: 'Drive', url: 'https://drive.google.com' }
+const DEFAULT_BAR_SETS = [
+  {
+    id: 'main',
+    name: 'Main',
+    links: [
+      { title: 'Google', url: 'https://www.google.com' },
+      { title: 'Gmail', url: 'https://mail.google.com' }
+    ]
+  },
+  {
+    id: 'more',
+    name: 'More',
+    links: [
+      { title: 'YouTube', url: 'https://www.youtube.com' },
+      { title: 'Drive', url: 'https://drive.google.com' }
+    ]
+  }
 ];
 
-let topLinks = DEFAULT_TOP_LINKS.slice();
-let bottomLinks = DEFAULT_BOTTOM_LINKS.slice();
-let colorOverride = '';
+let barSets = DEFAULT_BAR_SETS.slice();
+let activeIndex = 0;
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
 
 function faviconForUrl(url) {
   try {
@@ -49,11 +71,15 @@ function isSafeUrl(url) {
   }
 }
 
+function activeSet() {
+  if (!barSets[activeIndex]) activeIndex = 0;
+  return barSets[activeIndex];
+}
+
 function renderLinkItem(link) {
   const a = document.createElement('a');
   a.className = 'link-item';
   a.href = link.url;
-  a.style.color = colorOverride || '';
 
   const icon = document.createElement('span');
   icon.className = 'icon';
@@ -96,38 +122,54 @@ function renderLinkItem(link) {
   return a;
 }
 
-function applyColor() {
-  document.querySelectorAll('.link-item').forEach(a => {
-    a.style.color = colorOverride || '';
+function renderBar() {
+  if (!bottomBar) return;
+  bottomBar.innerHTML = '';
+  activeSet().links.forEach(l => bottomBar.appendChild(renderLinkItem(l)));
+}
+
+function renderSwitcher() {
+  if (!barDots) return;
+  barDots.innerHTML = '';
+  barSets.forEach((set, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'bar-switch-dot' + (i === activeIndex ? ' active' : '');
+    dot.title = set.name + ' (double-click to rename, right-click to delete)';
+    dot.addEventListener('click', () => {
+      if (i === activeIndex) return;
+      activeIndex = i;
+      saveState();
+      renderBar();
+      renderSwitcher();
+    });
+    dot.addEventListener('dblclick', () => renameSet(i));
+    dot.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      deleteSet(i);
+    });
+    barDots.appendChild(dot);
   });
 }
 
-function renderBars() {
-  if (topBar) topBar.innerHTML = '';
-  if (bottomBar) bottomBar.innerHTML = '';
-  topLinks.forEach(l => topBar && topBar.appendChild(renderLinkItem(l)));
-  bottomLinks.forEach(l => bottomBar && bottomBar.appendChild(renderLinkItem(l)));
-  applyColor();
+async function saveState() {
+  await storageSyncSet({ barSets, activeIndex });
 }
 
-async function saveLinks() {
-  await storageSyncSet({ topLinks, bottomLinks });
-}
-
-function addLink(list, link) {
-  if (list === 'top') topLinks.push(link); else bottomLinks.push(link);
-  saveLinks();
-  renderBars();
+function addLink(link) {
+  activeSet().links.push(link);
+  saveState();
+  renderBar();
 }
 
 async function removeLink(link) {
-  topLinks = topLinks.filter(l => l.url !== link.url || l.title !== link.title);
-  bottomLinks = bottomLinks.filter(l => l.url !== link.url || l.title !== link.title);
-  await saveLinks();
-  renderBars();
+  const set = activeSet();
+  set.links = set.links.filter(l => l.url !== link.url || l.title !== link.title);
+  await saveState();
+  renderBar();
 }
 
-function addLinkPrompt(list) {
+function addLinkPrompt() {
   let url = prompt('Enter URL (https://...)');
   if (!url) return;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
@@ -136,28 +178,82 @@ function addLinkPrompt(list) {
     return;
   }
   const title = prompt('Title (optional)', url.replace(/^https?:\/\//, '').replace(/\/.*$/, ''));
-  addLink(list, { title: title || url, url });
+  addLink({ title: title || url, url });
 }
 
-if (topAddBtn) topAddBtn.addEventListener('click', () => addLinkPrompt('top'));
-if (bottomAddBtn) bottomAddBtn.addEventListener('click', () => addLinkPrompt('bottom'));
+function addSetPrompt() {
+  const name = prompt('Name this link set', `Set ${barSets.length + 1}`);
+  if (!name) return;
+  barSets.push({ id: uid(), name, links: [] });
+  activeIndex = barSets.length - 1;
+  saveState();
+  renderBar();
+  renderSwitcher();
+}
 
-// Cross-tab sync: another open new tab added/removed a link, or changed the
-// accent color -> re-render here too, without needing a page reload.
+function renameSet(i) {
+  const set = barSets[i];
+  if (!set) return;
+  const name = prompt('Rename this link set', set.name);
+  if (!name) return;
+  set.name = name;
+  saveState();
+  renderSwitcher();
+}
+
+function deleteSet(i) {
+  if (barSets.length <= 1) {
+    alert("Can't delete the last link set.");
+    return;
+  }
+  const set = barSets[i];
+  if (!confirm(`Delete the "${set.name}" link set? This removes its links too.`)) return;
+  barSets.splice(i, 1);
+  if (activeIndex >= barSets.length) activeIndex = barSets.length - 1;
+  saveState();
+  renderBar();
+  renderSwitcher();
+}
+
+if (bottomAddBtn) bottomAddBtn.addEventListener('click', addLinkPrompt);
+if (barAddSetBtn) barAddSetBtn.addEventListener('click', addSetPrompt);
+
+// Cross-tab sync: another open new tab changed the sets or the active
+// index -> re-render here too, without needing a page reload.
 onStorageChanged('sync', (changes) => {
-  let shouldRender = false;
-  if (changes.topLinks) { topLinks = changes.topLinks.newValue || []; shouldRender = true; }
-  if (changes.bottomLinks) { bottomLinks = changes.bottomLinks.newValue || []; shouldRender = true; }
-  if (changes.colorOverride) { colorOverride = changes.colorOverride.newValue || ''; shouldRender = true; }
-  if (shouldRender) renderBars();
+  let shouldRenderBar = false;
+  let shouldRenderSwitcher = false;
+  if (changes.barSets) { barSets = changes.barSets.newValue || DEFAULT_BAR_SETS.slice(); shouldRenderBar = true; shouldRenderSwitcher = true; }
+  if (changes.activeIndex) { activeIndex = changes.activeIndex.newValue || 0; shouldRenderBar = true; shouldRenderSwitcher = true; }
+  if (shouldRenderBar) renderBar();
+  if (shouldRenderSwitcher) renderSwitcher();
 });
 
-export async function init() {
-  const res = await storageSyncGet(['topLinks', 'bottomLinks', 'colorOverride']);
-  if (res.topLinks) topLinks = res.topLinks;
-  if (res.bottomLinks) bottomLinks = res.bottomLinks;
-  if (res.colorOverride) colorOverride = res.colorOverride;
-  renderBars();
+// One-time migration from the old two-bar (topLinks/bottomLinks) storage
+// shape into the new barSets shape, so existing users don't lose their
+// saved shortcuts when this update lands.
+async function migrateLegacyLinksIfNeeded(res) {
+  if (res.barSets && res.barSets.length) return false;
+  const legacySets = [];
+  if (res.bottomLinks && res.bottomLinks.length) legacySets.push({ id: uid(), name: 'Main', links: res.bottomLinks });
+  if (res.topLinks && res.topLinks.length) legacySets.push({ id: uid(), name: 'More', links: res.topLinks });
+  if (legacySets.length) {
+    barSets = legacySets;
+    await saveState();
+    return true;
+  }
+  return false;
 }
 
-export function getColorOverride() { return colorOverride; }
+export async function init() {
+  const res = await storageSyncGet(['barSets', 'activeIndex', 'topLinks', 'bottomLinks']);
+  if (res.barSets && res.barSets.length) {
+    barSets = res.barSets;
+    activeIndex = res.activeIndex || 0;
+  } else {
+    const migrated = await migrateLegacyLinksIfNeeded(res);
+    if (!migrated) await saveState();
+  }
+  renderBar();
+  renderSwitcher();
+}

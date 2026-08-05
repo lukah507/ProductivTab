@@ -1,17 +1,16 @@
-// settings.js — owns the settings panel open/close state, background image
-// upload + default background fallback, and the accent-color picker. This
-// is now the ONLY module that touches #settings-button and #color-apply
-// (previously both main.js and ui-enhancements.js bound click handlers to
-// these, which meant every click ran two independent, slightly different
-// code paths).
+// settings.js — owns the settings panel open/close state and the
+// background presets. This is now the ONLY module that touches
+// #settings-button and #bg-presets.
+//
+// The old file-upload background picker and the accent-color picker
+// ("Apply Color") were both removed. Backgrounds are now a fixed set of
+// 5 presets (see BG_PRESETS) -- just click one, nothing to apply.
 
-import { storageLocalGet, storageLocalSet, storageSyncGet, storageSyncSet, onStorageChanged } from './storage.js';
+import { storageLocalGet, storageLocalSet, onStorageChanged } from './storage.js';
 
 const settingsBtn = document.getElementById('settings-button');
 const centerControls = document.getElementById('center-controls');
-const bgUpload = document.getElementById('bg-upload');
-const colorInput = document.getElementById('color-input');
-const colorApplyBtn = document.getElementById('color-apply');
+const bgPresetButtons = document.querySelectorAll('.bg-preset');
 
 /* ---------- Settings panel toggle ---------- */
 function setSettingsOpen(open) {
@@ -30,82 +29,52 @@ if (settingsBtn) {
   });
 }
 
-/* ---------- Background image ---------- */
-function applyBackground(dataUrlOrPath) {
-  document.body.style.backgroundImage = dataUrlOrPath ? `url(${dataUrlOrPath})` : '';
+/* ---------- Background presets ----------
+   5 choices (bg/A.jpg - bg/E.jpg), matched to the swatch styling in
+   settings.css by data-bg-id. bgCurrent is stored as just the id ('A'
+   through 'E'); anything else found in storage (e.g. an old uploaded
+   image data-URL from before this feature existed) is treated as a raw
+   background-image value for backward compatibility. */
+const BG_PRESET_IDS = ['A', 'B', 'C', 'D', 'E'];
+const BG_PRESETS = Object.fromEntries(BG_PRESET_IDS.map(id => [id, `url(bg/${id}.jpg)`]));
+
+function resolveBackgroundCss(bgCurrent) {
+  if (!bgCurrent) return BG_PRESETS.A;
+  if (BG_PRESETS[bgCurrent]) return BG_PRESETS[bgCurrent];
+  return `url(${bgCurrent})`; // backward-compat with a previously-uploaded image
 }
 
-async function applyDefaultBackgroundIfNeeded(bgCurrent) {
-  if (!bgCurrent) {
-    const defaultBg = '/default.png';
-    applyBackground(defaultBg);
-    await storageLocalSet({ bgCurrent: defaultBg });
-    return;
-  }
-  applyBackground(bgCurrent);
+function applyBackground(bgCurrent) {
+  document.body.style.backgroundImage = resolveBackgroundCss(bgCurrent);
 }
 
-if (bgUpload) {
-  bgUpload.addEventListener('change', async (ev) => {
-    const files = Array.from(ev.target.files || []);
-    if (!files.length) return;
-    // Only the last selected file is kept as the current background --
-    // matches previous behavior. (Storing multiple uploaded backgrounds as
-    // base64 blobs would need IndexedDB/unlimitedStorage headroom; see the
-    // note in manifest.json.)
-    const file = files[files.length - 1];
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target.result;
-      applyBackground(dataUrl);
-      await storageLocalSet({ bgCurrent: dataUrl });
-    };
-    reader.onerror = () => console.error('[settings] Failed to read uploaded background image.');
-    reader.readAsDataURL(file);
+function setActivePresetUI(bgCurrent) {
+  bgPresetButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.bgId === bgCurrent);
   });
 }
 
-/* ---------- Accent color ---------- */
-function applyAccentColor(color) {
-  document.documentElement.style.setProperty('--accent-color', color || '#336699');
-}
-
-if (colorApplyBtn) {
-  colorApplyBtn.addEventListener('click', async () => {
-    let val = (colorInput && colorInput.value) ? colorInput.value.trim() : '';
-    if (!val) val = prompt('Enter HEX color (e.g. #336699)', '#336699') || '';
-    if (val && val.match(/^#?[0-9a-fA-F]{6}$/)) {
-      const color = (val[0] === '#') ? val : ('#' + val);
-      applyAccentColor(color);
-      await storageSyncSet({ colorOverride: color });
-    } else {
-      alert('Please pick a valid 6-digit HEX color.');
-    }
+bgPresetButtons.forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.bgId;
+    applyBackground(id);
+    setActivePresetUI(id);
+    await storageLocalSet({ bgCurrent: id });
   });
-}
-
-// Cross-tab sync for background + accent color.
-onStorageChanged('local', (changes) => {
-  if (changes.bgCurrent) applyBackground(changes.bgCurrent.newValue);
 });
-onStorageChanged('sync', (changes) => {
-  if (changes.colorOverride) {
-    applyAccentColor(changes.colorOverride.newValue);
-    if (colorInput) colorInput.value = changes.colorOverride.newValue || '#336699';
+
+// Cross-tab sync for background.
+onStorageChanged('local', (changes) => {
+  if (changes.bgCurrent) {
+    applyBackground(changes.bgCurrent.newValue);
+    setActivePresetUI(changes.bgCurrent.newValue);
   }
 });
 
 export async function init() {
   const local = await storageLocalGet(['bgCurrent']);
-  await applyDefaultBackgroundIfNeeded(local.bgCurrent);
-
-  // Read colorOverride back out of sync storage (links.js also reads it
-  // independently for its own render -- this call just drives the CSS var
-  // + the <input type=color> UI, so there's no ordering dependency between
-  // modules).
-  const syncRes = await storageSyncGet(['colorOverride']);
-  if (syncRes.colorOverride) {
-    applyAccentColor(syncRes.colorOverride);
-    if (colorInput) colorInput.value = syncRes.colorOverride;
-  }
+  const current = local.bgCurrent || 'A';
+  applyBackground(current);
+  setActivePresetUI(current);
+  if (!local.bgCurrent) await storageLocalSet({ bgCurrent: current });
 }
