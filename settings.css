@@ -6,17 +6,157 @@
    styling is fixed via CSS now, so there was no longer a picker UI to
    style.) */
 
-/* Hidden class for center controls */
-.hidden {
-  display: none !important;
+/* ---------- Settings panel ----------
+   Same visual language as .notes-panel (slide + fade, translucent black,
+   hidden via opacity/pointer-events rather than display so the
+   transition can run) but top-anchored and NOT full height: its `height`
+   is set inline by js/settings.js (sizePanelToTime()) each time it opens,
+   so it always stops exactly at the bottom edge of the clock instead of
+   a guessed pixel value. Anchored to the right, under the settings
+   button, mirroring how the notes panel sits under the note button on
+   the left. */
+.settings-panel{
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 340px;
+  max-width: 100vw;
+  background: rgba(0,0,0,0.65);
+  z-index: 90;
+  overflow-y: auto;
+  padding: 56px 20px 20px;
+  box-sizing: border-box;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(24px);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.settings-panel.open{
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateX(0);
+}
+.settings-panel-inner{
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
 
-/* 12/24 clock toggle: a small segmented switch instead of a plain text
-   button, so it's obvious at a glance which mode is active. The white
-   thumb sits under whichever label is active and slides over via
-   .is-24 (toggled in js/clock.js); the label sitting on top of the
-   thumb gets dark text for contrast, the other stays dim white. */
-.clock-toggle{
+.settings-section-title{
+  margin: 0 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+}
+
+/* ---------- Themes grid ---------- */
+.theme-grid{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.theme-tile{
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255,255,255,0.06);
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.theme-tile:hover{ transform: scale(1.04); }
+.theme-tile.active{ border-color: #fff; }
+
+/* the "+" add tile -- dashed outline, no image, always the last tile */
+.theme-tile--empty{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.6);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+}
+.theme-tile--empty:hover{
+  border-color: rgba(255,255,255,0.6);
+  color: #fff;
+}
+
+/* per-tile delete "x" -- same transparent/hover-circle treatment used
+   elsewhere (.remove-shortcut in style.css), only shown on hover of its
+   tile so the grid stays clean at rest. */
+.theme-tile-delete{
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.theme-tile:hover .theme-tile-delete{ display: flex; }
+.theme-tile-delete:hover{ background: rgba(255,255,255,0.25); }
+
+/* shown instead of the grid until a backgrounds folder is connected */
+.theme-connect-btn{
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255,255,255,0.35);
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.theme-connect-btn:hover{
+  border-color: rgba(255,255,255,0.6);
+  color: #fff;
+}
+.theme-unsupported{
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: rgba(255,255,255,0.55);
+}
+
+/* ---------- Generic pill toggle switch ----------
+   Used for both the 12/24-hour toggle and the show/hide-seconds toggle:
+   a small segmented switch (rather than a plain on/off button) so it's
+   obvious at a glance which side is active. The white thumb sits under
+   whichever label is active and slides over via .is-on; the label on top
+   of the thumb gets dark text for contrast, the other stays dim white. */
+.settings-toggle-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.settings-toggle-row:first-of-type{ margin-top: 0; }
+.settings-toggle-row-label{
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 450;
+  color: rgba(255,255,255,0.85);
+}
+.settings-toggle{
   appearance: none;
   -webkit-appearance: none;
   border: none;
@@ -24,8 +164,9 @@
   padding: 0;
   cursor: pointer;
   pointer-events: auto;
+  flex-shrink: 0;
 }
-.clock-toggle-track{
+.settings-toggle-track{
   position: relative;
   display: flex;
   align-items: center;
@@ -37,7 +178,7 @@
   box-sizing: border-box;
   overflow: hidden;
 }
-.clock-toggle-thumb{
+.settings-toggle-thumb{
   position: absolute;
   top: 3px;
   left: 3px;
@@ -48,10 +189,10 @@
   transition: transform 0.2s ease;
   z-index: 1;
 }
-.clock-toggle.is-24 .clock-toggle-thumb{
+.settings-toggle.is-on .settings-toggle-thumb{
   transform: translateX(33px);
 }
-.clock-toggle-label{
+.settings-toggle-label{
   position: relative;
   z-index: 2;
   flex: 1;
@@ -62,40 +203,12 @@
   color: #111;
   transition: color 0.2s ease;
 }
-.clock-toggle-label--24{
+.settings-toggle-label--on{
   color: rgba(255,255,255,0.55);
 }
-.clock-toggle.is-24 .clock-toggle-label--12{
+.settings-toggle.is-on .settings-toggle-label--off{
   color: rgba(255,255,255,0.55);
 }
-.clock-toggle.is-24 .clock-toggle-label--24{
+.settings-toggle.is-on .settings-toggle-label--on{
   color: #111;
 }
-
-/* Background presets: 5 swatch buttons in place of the old file-upload
-   input. The image each dot previews is set from JS (js/settings.js,
-   paintSwatches()) using the same BG_PRESETS map that applies the actual
-   background on click -- so there's a single source of truth for the
-   file path/extension instead of duplicating it here and risking the two
-   drifting out of sync (which is what was happening: this file still had
-   .jpg hardcoded while the real files are .jpeg).
-   .active marks whichever preset is currently applied. */
-.bg-presets{
-  display: flex;
-  gap: 8px;
-  pointer-events: auto;
-}
-.bg-preset{
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  padding: 0;
-  border: 2px solid transparent;
-  cursor: pointer;
-  background-size: cover;
-  background-position: center;
-  background-color: #333; /* shows until JS paints the preview / if a file fails to load */
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-.bg-preset:hover{ transform: scale(1.08); }
-.bg-preset.active{ border-color: #fff; }

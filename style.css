@@ -167,20 +167,8 @@ body.settings-open .bar-switch-add{ display:flex; }
   opacity:0.70;
 }
 
-/* center-controls: vertical list directly below the settings button
-   (now top-right, so this panel is right-anchored and its items align to
-   the right edge, under the button) */
-.center-controls{
-  position: fixed;
-  top: 72px; /* settings button: top 12px + height 48px + 12px gap */
-  right: 20px;
-  display:flex;
-  flex-direction: column;
-  align-items:flex-end;
-  gap:8px;
-  pointer-events:auto;
-  z-index:80;
-}
+/* center-controls (old vertical list below the settings button) was
+   replaced by #settings-panel -- see settings.css. */
 
 /* Notes panel: full-height drawer stuck to the left edge, toggled open
    by the note button (js/notes.js adds/removes .open). translateX slide +
@@ -371,9 +359,18 @@ body.settings-open .remove-shortcut{ display:flex; }
   pointer-events:none; /* clicks land on the button, not the image */
 }
 
-/* settings button: top-right */
+/* settings button: top-right, and -- per request -- much smaller than
+   the other icon buttons (20px vs. the shared 48px .icon-btn size). The
+   icon image inside is scaled down to match so it doesn't overflow the
+   smaller circle. */
 #settings-button{
   right: 20px;
+  width: 20px;
+  height: 20px;
+}
+#settings-button .icon-btn-img{
+  width: 12px;
+  height: 12px;
 }
 
 /* add-note button: top-left */
@@ -385,6 +382,6 @@ body.settings-open .remove-shortcut{ display:flex; }
 /* small responsive adjustments */
 @media (max-width:720px){
   .center-time{font-size:94px}
-  .center-controls{top:68px;right:8px}
   #notes-panel{display:none}
+  .settings-panel{width:280px}
 }
