@@ -65,11 +65,14 @@ body {
 }
 .icon img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* label - weight 450 */
+/* label - weight 450. text-shadow gives the shortcut name a little lift
+   off busy/bright backgrounds, matching the treatment on the center
+   date/time and the icon-btn images below. */
 .label{
   font-size:15px;
   line-height:1;
   font-weight:450;
+  text-shadow:0 2px 6px rgba(0,0,0,0.55);
 }
 
 /* Add-link button ("+"): styled like the settings/notes icon buttons --
@@ -157,8 +160,8 @@ body.settings-open .bar-switch-add{ display:flex; }
 /* center stack: date first (smaller), time underneath (large) */
 /* moved up 20px from dead-center via the extra translateY */
 #center-stack{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) translateY(-13px);text-align:center;z-index:10;pointer-events:none}
-.center-date{font-size:32px;font-weight:500;opacity:0.75;pointer-events:auto}
-.center-time{font-size:135px;font-weight:700;margin-top:8px;pointer-events:auto}
+.center-date{font-size:32px;font-weight:500;opacity:0.75;pointer-events:auto;text-shadow:0 2px 8px rgba(0,0,0,0.55)}
+.center-time{font-size:135px;font-weight:700;margin-top:8px;pointer-events:auto;text-shadow:0 4px 14px rgba(0,0,0,0.55)}
 /* seconds render smaller + dimmer than hour:minute, e.g. "10:45" then a
    smaller ":12" -- sized relative to .center-time (2/3) so it scales if
    the main time size ever changes */
@@ -182,7 +185,7 @@ body.settings-open .bar-switch-add{ display:flex; }
   bottom: 0;
   width: 350px;
   max-width: 100vw;
-  background: rgba(0,0,0,0.20);
+  background: rgba(0,0,0,0.65);
   z-index: 60;
   overflow-y: auto;
   display: flex;
@@ -208,7 +211,7 @@ body.settings-open .bar-switch-add{ display:flex; }
 }
 
 /* Sits right next to the note icon (top:12px matches the icon buttons'
-   top offset; left:80px = icon left(20px) + icon width(48px) + 12px gap).
+   top offset; left:62px = icon left(20px) + icon width(30px) + 12px gap).
    Only shown while the notes panel is open -- js/notes.js toggles .open
    on this alongside the panel itself.
    IMPORTANT: this button must live OUTSIDE .notes-panel in index.html,
@@ -222,7 +225,7 @@ body.settings-open .bar-switch-add{ display:flex; }
 .notes-add-btn{
   position: fixed;
   top: 12px;
-  left: 80px;
+  left: 62px;
   height: 48px;
   display: flex;
   align-items: center;
@@ -262,7 +265,7 @@ body.settings-open .bar-switch-add{ display:flex; }
   padding: 14px 16px;
   border-radius: 14px;
   background: rgba(0,0,0,0.45);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.75);
 }
 .note textarea{
   width:100%;
@@ -325,18 +328,23 @@ body.settings-open .bar-switch-add{ display:flex; }
 body.settings-open .link-item{ position: relative; }
 body.settings-open .remove-shortcut{ display:flex; }
 
-/* Icon-only buttons: settings + add-note. No background/drop-shadow at
-   rest -- just the white icon image. On hover (and while the settings
-   panel is open, via .active), a soft 20%-opacity white circle fades in
-   behind the icon to signal it's interactive; since the button itself is
-   already a 48px circle (border-radius:50%), this is just a background
-   color change on top of the existing shape. top:12px is just the fixed
-   offset from the viewport edge these two buttons share. */
+/* Icon-only buttons: settings + add-note. No background/drop-shadow on
+   the button shape itself at rest -- just the white icon image, which
+   now carries its own drop-shadow (filter: drop-shadow, since these are
+   <img> icons -- box-shadow only draws around the element's box, not
+   around the actual opaque pixels of a transparent-background PNG, so
+   filter is what gives the icon shape itself a shadow instead of a
+   rectangle behind it). On hover (and while the settings panel is open,
+   via .active), a soft 20%-opacity white circle fades in behind the icon
+   to signal it's interactive; since the button itself is already a
+   circle (border-radius:50%), this is just a background color change on
+   top of the existing shape. top:12px is just the fixed offset from the
+   viewport edge these two buttons share. */
 .icon-btn{
   position: fixed;
   top: 12px;
-  width: 48px;
-  height: 48px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: none;
   background: transparent;
@@ -357,20 +365,12 @@ body.settings-open .remove-shortcut{ display:flex; }
   height: 22px;
   display:block;
   pointer-events:none; /* clicks land on the button, not the image */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
 }
 
-/* settings button: top-right, and -- per request -- much smaller than
-   the other icon buttons (20px vs. the shared 48px .icon-btn size). The
-   icon image inside is scaled down to match so it doesn't overflow the
-   smaller circle. */
+/* settings button: top-right. */
 #settings-button{
   right: 20px;
-  width: 20px;
-  height: 20px;
-}
-#settings-button .icon-btn-img{
-  width: 12px;
-  height: 12px;
 }
 
 /* add-note button: top-left */

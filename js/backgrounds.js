@@ -1,147 +1,158 @@
-// backgrounds.js — owns the "bg" folder: listing whatever images are
-// actually in it, uploading new ones into it, and deleting them.
+// backgrounds.js — owns two sources of background images, both loaded
+// with zero user prompts (no folder picker, no permission dialog):
 //
-// This uses the File System Access API to talk to a REAL folder on disk
-// (the same bg/ folder that sits next to index.html) rather than baking
-// uploaded images into chrome.storage. That means:
-//   - uploading actually writes a new file into bg/
-//   - deleting actually removes the file from bg/
-//   - listing reads whatever's really there -- png/jpg/jpeg, any name --
-//     instead of a hardcoded id list like "A.jpeg", "B.jpeg", etc.
-//   - once a file is in bg/, applying it as the background is just a
-//     plain relative url('bg/<name>') -- the same way every other bundled
-//     extension resource is referenced, no special permission needed to
-//     just *display* an already-chosen background.
+//   1. PRESETS: whatever image files are already sitting in bg/. Since
+//      that folder ships as part of the extension itself, reading it
+//      needs no special permission -- we just have to find out what's
+//      there. Browsers don't expose a directory listing for extension
+//      resources, so this is auto-detected by trying likely filenames
+//      (bg/manifest.json first if present, otherwise a quiet probe of
+//      letter-named files) and keeping whichever ones actually exist.
 //
-// The catch: browsers require a user gesture to grant (or re-confirm,
-// after the browser restarts) access to a folder. So `getFolderHandle()`
-// may resolve to null -- that means "ask the user to click something
-// first" -- and `connectFolder()` (which shows the native picker / asks
-// for the persisted handle's permission again) must be called directly
-// from a click handler, not from init() on page load.
+//   2. CUSTOM uploads: added through the "+" tile in the Themes grid.
+//      A real extension can't write a new file into its own bg/ folder
+//      at runtime without a permission prompt each time -- browsers
+//      don't allow silent filesystem writes, full stop. So these are
+//      stored as data URLs in chrome.storage.local instead: from the
+//      UI it behaves exactly like an upload (appears immediately, no
+//      prompt, persists, can be deleted for real), it just isn't a
+//      literal new file in bg/ on disk.
+//
+// "Deleting" a preset can't remove the real file for the same reason,
+// so it's a soft-delete: hidden from the grid via hiddenPresets, kept in
+// storage so it's remembered. Deleting a custom upload is a real delete
+// (it's just stored data).
 
-const DB_NAME = 'productivtab-fs';
-const STORE = 'handles';
-const HANDLE_KEY = 'bgFolder';
+import { storageLocalGet, storageLocalSet } from './storage.js';
+
 const IMAGE_EXT_RE = /\.(png|jpe?g)$/i;
+const PROBE_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const PROBE_EXTS = ['jpg', 'jpeg', 'png'];
 
-function openDb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+let presetCache = null; // resolved once per page load
+
+function imageExists(path) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = path;
   });
 }
 
-async function idbGet(key) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbSet(key, value) {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(value, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-let cachedHandle = null;
-
-// True if this browser/context can even do any of this.
-export function isSupported() {
-  return typeof window !== 'undefined' && !!window.showDirectoryPicker && !!window.indexedDB;
-}
-
-// Returns a directory handle with confirmed readwrite permission, or null
-// if we don't have one yet, or permission needs a fresh user gesture to
-// re-confirm (e.g. after a browser restart). Safe to call anytime,
-// including on page load -- it never itself prompts the user.
-export async function getFolderHandle() {
-  if (!isSupported()) return null;
-  if (cachedHandle) {
-    const perm = await cachedHandle.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') return cachedHandle;
-  }
-  const stored = await idbGet(HANDLE_KEY);
-  if (!stored) return null;
-  const perm = await stored.queryPermission({ mode: 'readwrite' });
-  if (perm === 'granted') { cachedHandle = stored; return stored; }
+// Preferred: bg/manifest.json, a plain JSON array of filenames, e.g.
+// ["A.jpeg","B.jpeg","sunset.png"]. If you'd rather not hand-maintain
+// that, skip it -- probePresetLetters() below covers single-letter names
+// like the current A.jpeg..E.jpeg automatically.
+async function readManifest() {
+  try {
+    const res = await fetch('bg/manifest.json', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data)) return data.filter(n => IMAGE_EXT_RE.test(n));
+  } catch (e) { /* no manifest -- fall through to probing */ }
   return null;
 }
 
-// Must be called synchronously from a user gesture (a click handler).
-// First-ever connect: opens the native folder picker so the person can
-// select their extension's bg/ folder once. On later calls, if we
-// already have a handle but its permission lapsed, this just re-requests
-// permission on that same handle -- no picker needed.
-export async function connectFolder() {
-  if (!isSupported()) throw new Error('This browser doesn\u2019t support folder access.');
-  const stored = await idbGet(HANDLE_KEY);
-  if (stored) {
-    const perm = await stored.requestPermission({ mode: 'readwrite' });
-    if (perm === 'granted') { cachedHandle = stored; return stored; }
-  }
-  const handle = await window.showDirectoryPicker({ id: 'productivtab-bg', mode: 'readwrite' });
-  await idbSet(HANDLE_KEY, handle);
-  cachedHandle = handle;
-  return handle;
-}
-
-// { name, url }[] -- url is a session-local blob: URL, good for painting
-// a thumbnail. The name alone (not the url) is what gets stored/applied,
-// via the stable relative path bg/<name>.
-export async function listImages() {
-  const handle = await getFolderHandle();
-  if (!handle) return [];
-  const out = [];
-  for await (const entry of handle.values()) {
-    if (entry.kind === 'file' && IMAGE_EXT_RE.test(entry.name)) {
-      const file = await entry.getFile();
-      out.push({ name: entry.name, url: URL.createObjectURL(file) });
+// Quietly checks bg/A.jpg, bg/A.jpeg, bg/A.png, bg/B.jpg, ... and keeps
+// whichever ones actually load. All same-origin bundled resources, so
+// this triggers no permission prompt and no network request -- it's
+// effectively instant.
+async function probePresetLetters() {
+  const found = [];
+  await Promise.all(PROBE_LETTERS.map(async (letter) => {
+    for (const ext of PROBE_EXTS) {
+      const name = `${letter}.${ext}`;
+      if (await imageExists(`bg/${name}`)) { found.push(name); break; }
     }
+  }));
+  found.sort();
+  return found;
+}
+
+async function loadPresetNames() {
+  if (presetCache) return presetCache;
+  const manifest = await readManifest();
+  presetCache = (manifest && manifest.length) ? manifest : await probePresetLetters();
+  return presetCache;
+}
+
+async function getHiddenPresets() {
+  const res = await storageLocalGet(['hiddenPresets']);
+  return res.hiddenPresets || [];
+}
+
+async function getCustomList() {
+  const res = await storageLocalGet(['customBackgrounds']);
+  return res.customBackgrounds || [];
+}
+
+// { name, url, kind: 'preset'|'custom' }[] -- ready to render as tiles.
+// `url` is a plain relative path for presets (bg/<name>) and a stored
+// data URL for custom uploads.
+export async function listBackgrounds() {
+  const [presetNames, hidden, customList] = await Promise.all([
+    loadPresetNames(), getHiddenPresets(), getCustomList()
+  ]);
+  const presets = presetNames
+    .filter(n => !hidden.includes(n))
+    .map(n => ({ name: n, url: `bg/${n}`, kind: 'preset' }));
+  const customs = customList.map(c => ({ name: c.name, url: c.dataUrl, kind: 'custom' }));
+  return [...presets, ...customs];
+}
+
+// Resolves a {kind, name} descriptor (as stored in bgCurrent) to a CSS
+// url()-ready path/data-URL, or null if it no longer exists.
+export async function resolveBackgroundUrl(bg) {
+  if (!bg || !bg.name) return null;
+  if (bg.kind === 'custom') {
+    const list = await getCustomList();
+    const match = list.find(c => c.name === bg.name);
+    return match ? match.dataUrl : null;
   }
-  out.sort((a, b) => a.name.localeCompare(b.name));
-  return out;
+  const presetNames = await loadPresetNames();
+  const hidden = await getHiddenPresets();
+  return (presetNames.includes(bg.name) && !hidden.includes(bg.name)) ? `bg/${bg.name}` : null;
 }
 
-async function fileExists(dirHandle, name) {
-  try { await dirHandle.getFileHandle(name); return true; }
-  catch (e) { return false; }
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
-// Writes `file` into bg/ under its original name (de-duplicated if that
-// name's already taken) and returns the final filename actually used.
-export async function uploadImage(file) {
+// Adds an uploaded file as a custom background and returns its stored
+// name (de-duplicated against existing custom names).
+export async function addCustomBackground(file) {
   if (!IMAGE_EXT_RE.test(file.name)) {
     throw new Error('Only PNG, JPG, or JPEG files are supported.');
   }
-  const handle = await getFolderHandle();
-  if (!handle) throw new Error('Background folder isn\u2019t connected.');
-
+  const list = await getCustomList();
   let name = file.name;
   let i = 1;
-  while (await fileExists(handle, name)) {
+  while (list.some(c => c.name === name)) {
     const dot = file.name.lastIndexOf('.');
     name = `${file.name.slice(0, dot)}-${i}${file.name.slice(dot)}`;
     i++;
   }
-  const fileHandle = await handle.getFileHandle(name, { create: true });
-  const writable = await fileHandle.createWritable();
-  await writable.write(file);
-  await writable.close();
+  const dataUrl = await fileToDataUrl(file);
+  list.push({ name, dataUrl });
+  await storageLocalSet({ customBackgrounds: list });
   return name;
 }
 
-export async function deleteImage(name) {
-  const handle = await getFolderHandle();
-  if (!handle) throw new Error('Background folder isn\u2019t connected.');
-  await handle.removeEntry(name);
+export async function removeCustomBackground(name) {
+  const list = await getCustomList();
+  await storageLocalSet({ customBackgrounds: list.filter(c => c.name !== name) });
+}
+
+// Soft-delete: a real file in bg/ can't be removed from disk without a
+// permission prompt each time, so this just hides it from the grid.
+export async function hidePreset(name) {
+  const hidden = await getHiddenPresets();
+  if (!hidden.includes(name)) hidden.push(name);
+  await storageLocalSet({ hiddenPresets: hidden });
 }

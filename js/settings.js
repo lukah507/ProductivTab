@@ -1,11 +1,11 @@
 // settings.js — owns the settings panel: opening/closing it, the Themes
-// grid (backed by js/backgrounds.js, the real bg/ folder), and applying
-// whichever background is currently selected. Clock toggles live in the
-// same panel but are wired up by js/clock.js -- this file only builds
-// the markup they attach to.
+// grid (backed by js/backgrounds.js), and applying whichever background
+// is currently selected. Clock toggles live in the same panel but are
+// wired up by js/clock.js -- this file only builds the markup they
+// attach to.
 
 import { storageLocalGet, storageLocalSet, onStorageChanged } from './storage.js';
-import { isSupported as fsSupported, getFolderHandle, connectFolder, listImages, uploadImage, deleteImage } from './backgrounds.js';
+import { listBackgrounds, resolveBackgroundUrl, addCustomBackground, removeCustomBackground, hidePreset } from './backgrounds.js';
 
 const settingsBtn = document.getElementById('settings-button');
 const settingsPanel = document.getElementById('settings-panel');
@@ -14,7 +14,7 @@ const themeGrid = document.getElementById('theme-grid');
 const fileInput = document.getElementById('bg-file-input');
 
 let panelOpen = false;
-let activeName = null; // currently-applied filename, e.g. "sunset.jpg"
+let activeBg = null; // {kind, name} of the currently-applied background, or null
 
 /* ---------- Panel open/close ---------- */
 
@@ -44,20 +44,33 @@ if (settingsBtn) {
 }
 window.addEventListener('resize', () => { if (panelOpen) sizePanelToTime(); });
 
-/* ---------- Applying a background ----------
-   Once a filename is known, applying it is just a plain relative URL --
-   the same way any other bundled extension resource is referenced. No
-   folder permission is needed just to *display* an already-chosen
-   background; permission is only needed to list/upload/delete in the
-   Themes grid below. */
-function applyBackground(name) {
-  activeName = name || null;
-  document.body.style.backgroundImage = activeName ? `url(bg/${activeName})` : 'none';
+// Click-anywhere-outside-the-panel to close. mousedown (not click) so it
+// fires before whatever was clicked reacts, and it no-ops while the
+// panel is already closed -- which is what keeps this from fighting with
+// the settingsBtn click handler above on the very click that opens the
+// panel (that mousedown lands while panelOpen is still false, so this
+// returns immediately and the click handler is the one that opens it).
+// Clicks on settingsBtn itself are also skipped here -- that button
+// handles its own open/close toggle, so this listener staying out of the
+// way is what stops the two from fighting once the panel's already open.
+document.addEventListener('mousedown', (ev) => {
+  if (!panelOpen) return;
+  if (settingsBtn && settingsBtn.contains(ev.target)) return;
+  if (settingsPanel && !settingsPanel.contains(ev.target)) {
+    setPanelOpen(false);
+  }
+});
+
+/* ---------- Applying a background ---------- */
+async function applyBackground(bg) {
+  activeBg = bg || null;
+  const url = activeBg ? await resolveBackgroundUrl(activeBg) : null;
+  document.body.style.backgroundImage = url ? `url(${url})` : 'none';
 }
 
-async function selectBackground(name) {
-  applyBackground(name);
-  await storageLocalSet({ bgCurrent: name });
+async function selectBackground(bg) {
+  await applyBackground(bg);
+  await storageLocalSet({ bgCurrent: bg });
   renderThemeGrid();
 }
 
@@ -67,75 +80,49 @@ function clearGrid() {
   if (themeGrid) themeGrid.innerHTML = '';
 }
 
-function renderConnectPrompt(message) {
-  clearGrid();
-  if (!themeGrid) return;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'theme-connect-btn';
-  btn.textContent = message;
-  btn.addEventListener('click', async () => {
-    try {
-      await connectFolder();
-      await renderThemeGrid();
-    } catch (e) {
-      console.warn('[ProductivTab] Could not connect the backgrounds folder:', e.message);
-    }
-  });
-  themeGrid.appendChild(btn);
-}
-
 function makeEmptyTile() {
   const tile = document.createElement('button');
   tile.type = 'button';
   tile.className = 'theme-tile theme-tile--empty';
   tile.title = 'Add a background';
   tile.textContent = '+';
-  tile.addEventListener('click', async () => {
-    // Connecting the folder (if not already) has to happen from this
-    // same click so it counts as a user gesture.
-    const handle = await getFolderHandle();
-    if (!handle) {
-      try { await connectFolder(); } catch (e) {
-        console.warn('[ProductivTab] Could not connect the backgrounds folder:', e.message);
-        return;
-      }
-    }
-    fileInput.click();
-  });
+  tile.addEventListener('click', () => fileInput.click());
   return tile;
+}
+
+function isActive(img) {
+  return !!activeBg && activeBg.kind === img.kind && activeBg.name === img.name;
 }
 
 function makeImageTile(img) {
   const tile = document.createElement('div');
-  tile.className = 'theme-tile' + (img.name === activeName ? ' active' : '');
+  tile.className = 'theme-tile' + (isActive(img) ? ' active' : '');
   tile.style.backgroundImage = `url(${img.url})`;
   tile.title = img.name;
   tile.setAttribute('role', 'button');
   tile.tabIndex = 0;
-  tile.addEventListener('click', () => selectBackground(img.name));
+  const select = () => selectBackground({ kind: img.kind, name: img.name });
+  tile.addEventListener('click', select);
   tile.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectBackground(img.name); }
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(); }
   });
 
   const del = document.createElement('button');
   del.type = 'button';
   del.className = 'theme-tile-delete';
-  del.title = `Delete ${img.name}`;
+  del.title = img.kind === 'preset' ? `Hide ${img.name}` : `Delete ${img.name}`;
   del.textContent = '\u00d7';
   del.addEventListener('click', async (ev) => {
     ev.stopPropagation();
-    if (!confirm(`Delete "${img.name}"?`)) return;
-    try {
-      await deleteImage(img.name);
-      if (img.name === activeName) {
-        applyBackground(null);
-        await storageLocalSet({ bgCurrent: null });
-      }
-      await renderThemeGrid();
-    } catch (e) {
-      console.warn('[ProductivTab] Could not delete background:', e.message);
+    const verb = img.kind === 'preset' ? 'Remove' : 'Delete';
+    if (!confirm(`${verb} "${img.name}" from your backgrounds?`)) return;
+    if (img.kind === 'preset') await hidePreset(img.name);
+    else await removeCustomBackground(img.name);
+    if (isActive(img)) {
+      await applyBackground(null);
+      await storageLocalSet({ bgCurrent: null });
     }
+    renderThemeGrid();
   });
   tile.appendChild(del);
 
@@ -144,20 +131,7 @@ function makeImageTile(img) {
 
 async function renderThemeGrid() {
   if (!themeGrid) return;
-  if (!fsSupported()) {
-    clearGrid();
-    const note = document.createElement('div');
-    note.className = 'theme-unsupported';
-    note.textContent = 'Custom backgrounds need a browser with folder-access support.';
-    themeGrid.appendChild(note);
-    return;
-  }
-  const handle = await getFolderHandle();
-  if (!handle) {
-    renderConnectPrompt('Connect backgrounds folder');
-    return;
-  }
-  const images = await listImages();
+  const images = await listBackgrounds();
   clearGrid();
   images.forEach(img => themeGrid.appendChild(makeImageTile(img)));
   themeGrid.appendChild(makeEmptyTile());
@@ -169,13 +143,15 @@ if (fileInput) {
     fileInput.value = ''; // allow re-selecting the same file later
     if (!file) return;
     try {
-      const name = await uploadImage(file);
-      await selectBackground(name);
+      const name = await addCustomBackground(file);
+      await selectBackground({ kind: 'custom', name });
     } catch (e) {
       alert(e.message);
     }
   });
 }
+
+/* ---------- Settings panel toggle wiring is above; below is init/sync ---------- */
 
 // Cross-tab sync for background.
 onStorageChanged('local', (changes) => {
@@ -187,5 +163,17 @@ onStorageChanged('local', (changes) => {
 
 export async function init() {
   const local = await storageLocalGet(['bgCurrent']);
-  applyBackground(local.bgCurrent || null);
+  if (local.bgCurrent) {
+    await applyBackground(local.bgCurrent);
+    return;
+  }
+  // No background chosen yet (first-ever run, or the previously-selected
+  // one was deleted) -- default to whichever background turns up first,
+  // rather than leaving the page blank until someone opens Settings.
+  const images = await listBackgrounds();
+  if (images.length) {
+    const first = { kind: images[0].kind, name: images[0].name };
+    await applyBackground(first);
+    await storageLocalSet({ bgCurrent: first });
+  }
 }

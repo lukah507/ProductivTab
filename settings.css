@@ -24,12 +24,13 @@
   background: rgba(0,0,0,0.65);
   z-index: 90;
   overflow-y: auto;
-  padding: 56px 20px 20px;
+  padding: 24px 20px 20px;
   box-sizing: border-box;
   pointer-events: none;
   opacity: 0;
   transform: translateX(24px);
   transition: transform 0.25s ease, opacity 0.25s ease;
+  border-radius: 12px 0px 0px 12px
 }
 .settings-panel.open{
   pointer-events: auto;
@@ -45,26 +46,29 @@
 .settings-section-title{
   margin: 0 0 10px;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.75);
 }
 
 /* ---------- Themes grid ---------- */
+/* auto-fill + minmax stretches whatever columns fit to fill the full
+   row width exactly -- no leftover dead space on the right like a fixed
+   tile width + flex-wrap leaves when the row doesn't divide evenly.
+   aspect-ratio keeps tiles square as that stretched width changes. */
 .theme-grid{
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
   gap: 10px;
 }
 .theme-tile{
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: 10px;
   border: 2px solid transparent;
   background-size: cover;
+  background-repeat: no-repeat;
   background-position: center;
   background-color: rgba(255,255,255,0.06);
   cursor: pointer;
@@ -113,28 +117,6 @@
 }
 .theme-tile:hover .theme-tile-delete{ display: flex; }
 .theme-tile-delete:hover{ background: rgba(255,255,255,0.25); }
-
-/* shown instead of the grid until a backgrounds folder is connected */
-.theme-connect-btn{
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px dashed rgba(255,255,255,0.35);
-  background: transparent;
-  color: rgba(255,255,255,0.8);
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-.theme-connect-btn:hover{
-  border-color: rgba(255,255,255,0.6);
-  color: #fff;
-}
-.theme-unsupported{
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: rgba(255,255,255,0.55);
-}
 
 /* ---------- Generic pill toggle switch ----------
    Used for both the 12/24-hour toggle and the show/hide-seconds toggle:
